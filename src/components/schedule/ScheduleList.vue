@@ -118,7 +118,7 @@ function isCurrentLesson(dayWeek: string, startTime: string, endTime: string): b
 
 .day-date {
   font-size: 0.7rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .lessons {
@@ -143,13 +143,13 @@ function isCurrentLesson(dayWeek: string, startTime: string, endTime: string): b
 
 .lesson.empty {
   text-align: center;
-  color: var(--muted);
+  color: var(--text);
   border-style: dashed;
 }
 
 .time {
   font-size: 0.78rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .subject {
@@ -160,7 +160,7 @@ function isCurrentLesson(dayWeek: string, startTime: string, endTime: string): b
 .meta {
   margin-top: 0.1rem;
   font-size: 0.75rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .lesson-type {
@@ -170,7 +170,7 @@ function isCurrentLesson(dayWeek: string, startTime: string, endTime: string): b
 .group {
   margin-top: 0.1rem;
   font-size: 0.7rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .today {

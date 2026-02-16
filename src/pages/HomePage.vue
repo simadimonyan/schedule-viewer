@@ -5,7 +5,7 @@ import EntitySearch from '../components/filters/EntitySearch.vue'
 <template>
   <section class="home">
     <div class="hero">
-      <h1 class="hero-title">Просмотр университетского расписания</h1>
+      <h1 class="hero-title">Просмотр электронного расписания</h1>
       <p class="hero-subtitle">
         Выберите группу или преподавателя из списка — поиск работает по мере ввода.
       </p>
@@ -30,7 +30,7 @@ import EntitySearch from '../components/filters/EntitySearch.vue'
 .hero-subtitle {
   margin-top: 0.4rem;
   font-size: 0.9rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 @media (min-width: 768px) {

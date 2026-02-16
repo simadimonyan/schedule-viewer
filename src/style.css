@@ -3,6 +3,8 @@
   --background: #f3f2f7;
   --buttons: #0d80ff;
 
+  --text: #ffffff
+
   --disabledWhite: rgba(243, 242, 247, 0.49);
   --disabledBlue: rgba(13, 128, 255, 0.47);
   --disabledLightBlue: rgba(13, 128, 255, 0.24);
@@ -20,7 +22,7 @@
   --surface: #ffffff;
   --surface2: rgba(255, 255, 255, 0.72);
   --text: #101828;
-  --muted: rgba(16, 24, 40, 0.62);
+  --muted: rgba(255, 243, 242, 0.97);
   --border: rgba(16, 24, 40, 0.10);
   --shadow: 0 10px 30px rgba(16, 24, 40, 0.10);
   --primary: var(--buttons);
@@ -41,7 +43,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
     --bg: var(--backgroundDark);
     --surface: var(--secondaryDark);

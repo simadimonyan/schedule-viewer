@@ -15,10 +15,10 @@ const goHome = () => {
   <header class="header">
     <div class="header-inner">
       <button class="brand" type="button" @click="goHome">
-        <span class="brand-mark">SV</span>
+        <img src="@/assets/logo.svg" class="brand-mark"/>
         <span class="brand-text">
-          <span class="brand-title">Schedule Viewer</span>
-          <span class="brand-subtitle">Университетское расписание</span>
+          <span class="brand-title">Моя Академия</span>
+          <span class="brand-subtitle">📚 Ваше расписание всегда под рукой!</span>
         </span>
       </button>
 
@@ -60,11 +60,13 @@ const goHome = () => {
 }
 
 .brand-mark {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 999px;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.6rem;
+  border: 2px solid #ffffff;
   background: var(--primary);
   display: flex;
+  align-self: center;
   align-items: center;
   justify-content: center;
   font-weight: 700;
@@ -80,13 +82,15 @@ const goHome = () => {
 }
 
 .brand-title {
+  padding-bottom: 1px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
 }
 
 .brand-subtitle {
-  font-size: 0.75rem;
-  color: var(--muted);
+  font-size: 1rem;
+  color: var(--text);
 }
 
 .nav {

@@ -2,7 +2,7 @@
   <footer class="footer">
     <div class="footer-inner">
       <span class="footer-text">
-        Университетское расписание · Schedule Viewer
+        Электронное расписание · Моя Академия
       </span>
       <span class="footer-subtext">
         Данные загружаются из внешнего API · время отображается локально
@@ -25,7 +25,7 @@
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.75rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .footer-text {

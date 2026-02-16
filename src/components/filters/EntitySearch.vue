@@ -269,7 +269,7 @@ watch(selectedLevel, async () => {
 
 .field-label {
   font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .field-input {
@@ -326,12 +326,12 @@ watch(selectedLevel, async () => {
 .item-sub {
   margin-top: 0.15rem;
   font-size: 0.8rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .empty {
   padding: 0.75rem;
-  color: var(--muted);
+  color: var(--text);
   text-align: center;
 }
 

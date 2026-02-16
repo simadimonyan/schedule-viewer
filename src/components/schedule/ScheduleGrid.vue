@@ -170,7 +170,7 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
 .day-date {
   margin-top: 0.1rem;
   font-size: 0.7rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .lesson-cell {
@@ -193,7 +193,7 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
 .lesson.empty {
   border-style: dashed;
   text-align: center;
-  color: var(--muted);
+  color: var(--text);
   font-size: 0.75rem;
   display: flex;
   align-items: center;
@@ -208,7 +208,7 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
 .lesson-meta {
   margin-top: 0.15rem;
   font-size: 0.7rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .lesson-type {
@@ -225,7 +225,7 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
 .lesson-group {
   margin-top: 0.1rem;
   font-size: 0.7rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .today {

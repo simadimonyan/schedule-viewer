@@ -77,11 +77,11 @@ const { loading, error, week, label, changeWeek, serverWeekLabel, serverWeekCoun
 .subtitle {
   margin: 0.35rem 0 0;
   font-size: 0.9rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .accent {
-  color: #e5e7eb;
+  color: var(--text);
   font-weight: 500;
 }
 
@@ -110,7 +110,7 @@ const { loading, error, week, label, changeWeek, serverWeekLabel, serverWeekCoun
 .placeholder {
   margin-top: 0.75rem;
   font-size: 0.9rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 @media (min-width: 768px) {

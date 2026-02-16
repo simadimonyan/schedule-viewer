@@ -64,7 +64,7 @@ const onNext = () => {
 
 .sub {
   font-size: 0.78rem;
-  color: var(--muted);
+  color: var(--text);
 }
 
 .pill {
