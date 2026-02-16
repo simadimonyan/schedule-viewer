@@ -1,0 +1,117 @@
+<script setup lang="ts">
+import { useRoute, useRouter } from 'vue-router'
+
+const router = useRouter()
+const route = useRoute()
+
+const goHome = () => {
+  if (route.name !== 'home') {
+    router.push({ name: 'home' })
+  }
+}
+</script>
+
+<template>
+  <header class="header">
+    <div class="header-inner">
+      <button class="brand" type="button" @click="goHome">
+        <span class="brand-mark">SV</span>
+        <span class="brand-text">
+          <span class="brand-title">Schedule Viewer</span>
+          <span class="brand-subtitle">Университетское расписание</span>
+        </span>
+      </button>
+
+      <nav class="nav">
+        <RouterLink class="nav-link" :to="{ name: 'home' }">
+          Расписание
+        </RouterLink>
+      </nav>
+    </div>
+  </header>
+</template>
+
+<style scoped>
+.header {
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(13, 128, 255, 0.12), rgba(13, 128, 255, 0.02));
+  backdrop-filter: blur(10px);
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.brand-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #ffffff;
+  box-shadow: var(--shadow);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.brand-title {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.brand-subtitle {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.nav {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.nav-link {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  color: var(--text);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.nav-link.router-link-active {
+  border-color: var(--primaryBorder);
+  background: var(--primarySoft);
+}
+
+@media (min-width: 768px) {
+  .header-inner {
+    padding: 0.9rem 1.5rem;
+  }
+}
+</style>
+
