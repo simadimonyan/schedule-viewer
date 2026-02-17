@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -9,33 +10,58 @@ const goHome = () => {
     router.push({ name: 'home' })
   }
 }
+
+const scrolled = ref(false)
+
+onMounted(() => {
+  const handleScroll = () => {
+    scrolled.value = window.scrollY > 10
+  }
+  window.addEventListener('scroll', handleScroll)
+  handleScroll()
+
+  onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll)
+  })
+})
 </script>
 
 <template>
-  <header class="header">
+  <header class="header" :class="{ scrolled }">
     <div class="header-inner">
       <button class="brand" type="button" @click="goHome">
         <img src="@/assets/logo.svg" class="brand-mark"/>
         <span class="brand-text">
           <span class="brand-title">Моя Академия</span>
-          <span class="brand-subtitle">📚 Ваше расписание всегда под рукой!</span>
+          <span class="brand-subtitle">ИМСИТ</span>
         </span>
       </button>
 
-      <nav class="nav">
+      <!-- <nav class="nav">
         <RouterLink class="nav-link" :to="{ name: 'home' }">
           Расписание
         </RouterLink>
-      </nav>
+      </nav> -->
+
+      <span class="subtitle">Ваше расписание всегда под рукой!</span>
     </div>
   </header>
 </template>
 
 <style scoped>
-.header {
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(13, 128, 255, 0.12), rgba(13, 128, 255, 0.02));
+
+.header.scrolled {
   backdrop-filter: blur(10px);
+  background: rgba(234, 244, 255, 0.037);
+  border-bottom: 1px solid var(--border);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 0px solid var(--border);
+  background: #ffffff
 }
 
 .header-inner {
@@ -63,7 +89,7 @@ const goHome = () => {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 0.6rem;
-  border: 2px solid #ffffff;
+  /*border: 2px solid #ffffff; */
   background: var(--primary);
   display: flex;
   align-self: center;
@@ -84,12 +110,17 @@ const goHome = () => {
 .brand-title {
   padding-bottom: 1px;
   font-weight: 600;
-  font-size: 1.25rem;
+  font-size: 1rem;
   letter-spacing: 0.01em;
 }
 
 .brand-subtitle {
-  font-size: 1rem;
+  font-size: 0.85rem;
+  color: var(--tertiaryDark);
+}
+
+.subtitle {
+  font-size: 0.85rem;
   color: var(--text);
 }
 

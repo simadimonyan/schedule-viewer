@@ -1,6 +1,9 @@
 :root {
   /* Palette (given) */
-  --background: #f3f2f7;
+  --background: #ffffff;
+  --secondBackground: #ffffff;
+  --footer: #f8f7f7f7;
+
   --buttons: #0d80ff;
 
   --text: #ffffff

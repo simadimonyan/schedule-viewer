@@ -4,13 +4,15 @@ import AppFooter from './components/layout/AppFooter.vue'
 </script>
 
 <template>
-  <div class="app-root">
-    <AppHeader />
-    <main class="app-main">
-      <RouterView />
-    </main>
-    <AppFooter />
-  </div>
+  <v-app>
+    <div class="app-root">
+      <AppHeader />
+      <main class="app-main">
+        <RouterView />
+      </main>
+      <AppFooter />
+    </div>
+  </v-app>
 </template>
 
 <style scoped>
@@ -26,13 +28,13 @@ import AppFooter from './components/layout/AppFooter.vue'
   flex: 1;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 2rem;
+  padding: 0.5rem 1rem 2rem;
   width: 100%;
 }
 
 @media (min-width: 768px) {
   .app-main {
-    padding: 2rem 1.5rem 3rem;
+    padding: 0.5rem 1.5rem 3rem;
   }
 }
 </style>
