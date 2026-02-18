@@ -4,6 +4,69 @@ import { useRouter } from 'vue-router'
 import type { Group, Teacher } from '../../types/schedule'
 import { getCourses, getGroupLevels, searchGroups, searchTeachers } from '../../api/schedule'
 
+const ONE_DAY = 24 * 60 * 60 * 1000
+
+function setWithTTL(key: string, value: unknown, ttl: number) {
+  const data = {
+    value,
+    expiry: Date.now() + ttl
+  }
+  localStorage.setItem(key, JSON.stringify(data))
+}
+
+function getWithTTL<T>(key: string): T | null {
+  const raw = localStorage.getItem(key)
+  if (!raw) return null
+
+  try {
+    const data = JSON.parse(raw)
+    if (Date.now() > data.expiry) {
+      localStorage.removeItem(key)
+      return null
+    }
+    return data.value as T
+  } catch {
+    localStorage.removeItem(key)
+    return null
+  }
+}
+
+function setSimple(key: string, value: unknown) {
+  localStorage.setItem(key, JSON.stringify(value))
+}
+
+function getSimple<T>(key: string): T | null {
+  const raw = localStorage.getItem(key)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as T
+  } catch {
+    return null
+  }
+}
+
+const RECENT_KEY = 'recent_schedules'
+const MAX_RECENT = 5
+
+function getRecent() {
+  const raw = localStorage.getItem(RECENT_KEY)
+  if (!raw) return []
+  try {
+    return JSON.parse(raw) as Array<{ type: Mode; id: string }>
+  } catch {
+    return []
+  }
+}
+
+function saveRecent(type: Mode, id: string) {
+  const current = getRecent().filter(r => !(r.type === type && r.id === id))
+  const updated = [{ type, id }, ...current].slice(0, MAX_RECENT)
+  localStorage.setItem(RECENT_KEY, JSON.stringify(updated))
+  recent.value = updated
+}
+
+const recent = ref<Array<{ type: Mode; id: string }>>(getRecent())
+
 type Mode = 'group' | 'teacher'
 
 const router = useRouter()
@@ -42,23 +105,47 @@ const loadCourses = async () => {
   const res = await getCourses()
   const sorted = [...res.courses].sort((a, b) => a - b)
   courses.value = sorted
-  selectedCourse.value = sorted[0] ?? null
+
+  // не перезаписываем выбранный курс, если он уже восстановлен
+  if (!selectedCourse.value) {
+    selectedCourse.value = sorted[0] ?? null
+  }
+
+  setWithTTL('cached_courses', sorted, ONE_DAY)
 }
 
 const loadLevels = async () => {
   if (!selectedCourse.value) return
+
   const res = await getGroupLevels(selectedCourse.value)
   levels.value = res.levels
-  selectedLevel.value = ''
+
+  // если сохранённый уровень существует и входит в список — оставляем его
+  if (selectedLevel.value && res.levels.includes(selectedLevel.value)) {
+    // ничего не делаем
+  } else {
+    selectedLevel.value = ''
+  }
+
+  setWithTTL(`cached_levels_${selectedCourse.value}`, res.levels, ONE_DAY)
 }
 
 const loadGroups = async () => {
   if (!selectedCourse.value) return
+
+  const cacheKey = `cached_groups_${selectedCourse.value}_${selectedLevel.value || 'all'}`
+  const cached = getWithTTL<Group[]>(cacheKey)
+  if (cached) {
+    groups.value = cached
+    return
+  }
+
   loading.value = true
   error.value = null
   try {
     const res = await searchGroups(selectedCourse.value, selectedLevel.value || undefined)
     groups.value = res.groups
+    setWithTTL(cacheKey, res.groups, ONE_DAY)
   } catch (e) {
     error.value = (e as { message?: string }).message || 'Не удалось загрузить группы'
     groups.value = []
@@ -68,11 +155,19 @@ const loadGroups = async () => {
 }
 
 const loadTeachers = async () => {
+  const cacheKey = `cached_teachers_${department.value.trim() || 'all'}`
+  const cached = getWithTTL<Teacher[]>(cacheKey)
+  if (cached) {
+    teachers.value = cached
+    return
+  }
+
   loading.value = true
   error.value = null
   try {
     const res = await searchTeachers(department.value.trim() || undefined)
     teachers.value = res.teachers
+    setWithTTL(cacheKey, res.teachers, ONE_DAY)
   } catch (e) {
     error.value = (e as { message?: string }).message || 'Не удалось загрузить преподавателей'
     teachers.value = []
@@ -82,10 +177,12 @@ const loadTeachers = async () => {
 }
 
 const openGroup = (g: Group) => {
+  saveRecent('group', g.name)
   router.push({ name: 'group-schedule', params: { groupId: g.name } })
 }
 
 const openTeacher = (t: Teacher) => {
+  saveRecent('teacher', t.label)
   router.push({ name: 'teacher-schedule', params: { teacherId: t.label } })
 }
 
@@ -93,6 +190,28 @@ onMounted(async () => {
   loading.value = true
   error.value = null
   try {
+    const cachedGroups = getWithTTL<Group[]>('cached_groups')
+    const cachedTeachers = getWithTTL<Teacher[]>('cached_teachers')
+    if (cachedGroups) groups.value = cachedGroups
+    if (cachedTeachers) teachers.value = cachedTeachers
+
+    const cachedCourses = getWithTTL<number[]>('cached_courses')
+    if (cachedCourses) {
+      courses.value = cachedCourses
+      selectedCourse.value = cachedCourses[0] ?? null
+    }
+
+    if (selectedCourse.value) {
+      const cachedLevels = getWithTTL<string[]>(`cached_levels_${selectedCourse.value}`)
+      if (cachedLevels) levels.value = cachedLevels
+    }
+
+    const savedCourse = getSimple<number>('selected_course')
+    const savedLevel = getSimple<string>('selected_level')
+
+    if (savedCourse) selectedCourse.value = savedCourse
+    if (savedLevel !== null) selectedLevel.value = savedLevel
+
     await loadCourses()
     await loadLevels()
     await loadGroups()
@@ -106,14 +225,26 @@ onMounted(async () => {
 
 watch(selectedCourse, async () => {
   if (mode.value !== 'group') return
+  setSimple('selected_course', selectedCourse.value)
+
+  // затемняем лист и показываем спинер
+  loading.value = true
+  groups.value = []
+
   await loadLevels()
   await loadGroups()
+
+  loading.value = false
 })
 
 watch(selectedLevel, async () => {
   if (mode.value !== 'group') return
-  selectedCourse.value = 1
+
+  setSimple('selected_level', selectedLevel.value)
+
+  loading.value = true
   await loadGroups()
+  loading.value = false
 })
 
 // search
@@ -234,7 +365,11 @@ onMounted(() => {
                 </div>
 
                 <div v-if="showCourseMenu" class="menu">
+                  <div v-if="!courses.length" class="menu-item">
+                    —
+                  </div>
                   <div
+                    v-else
                     v-for="c in courses"
                     :key="c"
                     class="menu-item"
@@ -253,8 +388,7 @@ onMounted(() => {
                 <div v-if="showLevelMenu" class="menu">
                   <div
                     class="menu-item"
-                    @click="selectedLevel = ''; closeAllMenus()"
-                  >
+                    @click="selectedLevel = ''; closeAllMenus()">
                     Все
                   </div>
                   <div
@@ -282,10 +416,15 @@ onMounted(() => {
               type="button"
               @click="openGroup(g)"
             >
-              <div class="item-title">{{ g.name }}</div>
-              <div class="item-sub">
-                {{ g.level }} · курс {{ g.course }} · {{ g.studyForm }}
-              </div>
+              <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                <img src="@/assets/group.png" width="32px" height="32">
+                <div>
+                  <div class="item-title">{{ g.name }}</div>
+                    <div class="item-sub">
+                      {{ g.level }} · курс {{ g.course }} · {{ g.studyForm }}
+                    </div>
+                  </div>
+                </div>
             </button>
 
             <div v-if="loading" class="loading">
@@ -307,10 +446,15 @@ onMounted(() => {
               class="item"
               type="button"
               @click="openTeacher(t)"
-            >
-              <div class="item-title">{{ t.label }}</div>
-              <div class="item-sub">
-                {{ t.department }}
+            > 
+              <div style="display: flex; flex-direction: row; gap: 13px; align-items: center;">
+                <img src="@/assets/teacher.png" width="25px">
+                <div>
+                  <div class="item-title">{{ t.label }}</div>
+                  <div class="item-sub">
+                    {{ t.department }}
+                  </div>
+                </div>
               </div>
             </button>
 
@@ -538,6 +682,16 @@ select.field-input::-ms-expand {
   background: rgba(0, 0, 0, 0.05);
 }
 
+
+.search-icon {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  display: block;
+  flex-shrink: 0;
+  color: #666;
+}
+
 .search-input {
   border: none;
   background: transparent;
@@ -630,6 +784,22 @@ select.field-input::-ms-expand {
   opacity: 0.7;
 }
 
+.empty {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+
+  text-align: left;
+  padding: 12px 14px;
+  margin: 2px 0;
+
+  border-radius: 14px;
+  cursor: pointer;
+
+  transition: 0.18s ease, transform 0.08s ease;
+}
+
 .loading {
   display: flex;
   justify-content: center;
@@ -666,3 +836,4 @@ select.field-input::-ms-expand {
   z-index: 1000;
 }
 </style>
+ 

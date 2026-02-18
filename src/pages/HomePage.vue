@@ -1,5 +1,21 @@
 <script setup lang="ts">
 import EntitySearch from '../components/filters/EntitySearch.vue'
+
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const RECENT_KEY = 'recent_schedules'
+const recent = ref<Array<{ type: 'group' | 'teacher'; id: string }>>([])
+
+onMounted(() => {
+  const raw = localStorage.getItem(RECENT_KEY)
+  if (raw) {
+    try {
+      recent.value = JSON.parse(raw) as Array<{ type: 'group' | 'teacher'; id: string }>
+    } catch {}
+  }
+})
 </script>
 
 <template>
@@ -14,6 +30,22 @@ import EntitySearch from '../components/filters/EntitySearch.vue'
       </div>
     </div>
     <EntitySearch />
+
+    <div v-if="recent.length" class="recent">
+        <div class="recent-title"></div>
+        <div class="recent-list">
+          <button
+            v-for="r in recent"
+            :key="r.type + r.id"
+            class="recent-item"
+            type="button"
+            @click="r.type === 'group' ? router.push({ name: 'group-schedule', params: { groupId: r.id } }) : router.push({ name: 'teacher-schedule', params: { teacherId: r.id } })"
+          >
+            {{ r.type === 'group' ? 'Группа' : 'Преподаватель' }} · {{ r.id }}
+          </button>
+        </div>
+      </div>
+
   </section>
 </template>
 
@@ -64,5 +96,35 @@ import EntitySearch from '../components/filters/EntitySearch.vue'
   .hero-title {
     font-size: 1.8rem;
   }
+}
+
+.recent {
+  margin-bottom: 0.75rem;
+}
+
+.recent-title {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin-bottom: 1.5rem;
+}
+
+.recent-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.recent-item {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.recent-item:hover {
+  background: rgba(0,0,0,0.05);
 }
 </style>
