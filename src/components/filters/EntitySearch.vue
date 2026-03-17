@@ -295,6 +295,12 @@ const handleClickOutside = (e: MouseEvent) => {
   }
 }
 
+const closeOverlay = () => {
+  showGroupList.value = false
+  closeAllMenus()
+  searchBarRef.value?.querySelector<HTMLInputElement>('input')?.blur()
+}
+
 const onFind = () => {
   showGroupList.value = true
   searchBarRef.value?.querySelector('input')?.focus()
@@ -338,9 +344,9 @@ onMounted(() => {
 <template>
   <div class="search-overlay-wrapper">
     <div
-      v-if="showGroupList"
+      v-if="searchFocused || showGroupList || showCourseMenu || showLevelMenu"
       class="overlay"
-      @click="showGroupList=false; closeAllMenus()"
+      @click="closeOverlay"
     />
 
     <p v-if="error" class="error">{{ error }}</p>
@@ -539,7 +545,7 @@ onMounted(() => {
 
 .section {
   position: relative;
-  z-index: 1001;
+  z-index: 1300;
   max-width: 820px;
   width: 96%;
   margin: 0 auto;
@@ -772,7 +778,7 @@ select.field-input::-ms-expand {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
   animation: menuIn 0.28s cubic-bezier(.34,1.56,.64,1);
   transform-origin: top center;
-  z-index: 1100;
+  z-index: 1400;
 }
 
 .menu-item {
@@ -856,7 +862,7 @@ select.field-input::-ms-expand {
   backdrop-filter: blur(20px);
 
   box-shadow: 0 25px 60px rgba(0,0,0,0.25);
-  z-index: 1001;
+  z-index: 1350;
 
   transition:
     max-height 0.35s cubic-bezier(.4,0,.2,1),
@@ -987,7 +993,7 @@ select.field-input::-ms-expand {
   width: 100vw;
   height: 100vh;
   background: rgba(0,0,0,0.35);
-  z-index: 999;
+  z-index: 1200;
 }
 </style>
  
