@@ -8,7 +8,11 @@ import AppFooter from './components/layout/AppFooter.vue'
     <div class="app-root">
       <AppHeader />
       <main class="app-main">
-        <RouterView />
+        <RouterView v-slot="{ Component }">
+          <Transition name="page" mode="out-in">
+            <component :is="Component" :key="$route.path" />
+          </Transition>
+        </RouterView>
       </main>
       <AppFooter />
     </div>
@@ -36,5 +40,21 @@ import AppFooter from './components/layout/AppFooter.vue'
   .app-main {
     padding: 0.5rem 1.5rem 3rem;
   }
+}
+
+/* Переходы между страницами */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 </style>

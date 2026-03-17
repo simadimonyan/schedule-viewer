@@ -1,9 +1,6 @@
 <template>
-  <div class="loader">
-    <span class="dot" />
-    <span class="dot" />
-    <span class="dot" />
-    <span class="label">Загружаем расписание…</span>
+  <div class="loader" aria-label="Загрузка">
+    <span class="spinner" />
   </div>
 </template>
 
@@ -11,41 +8,21 @@
 .loader {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  color: #9ca3af;
+  justify-content: center;
 }
 
-.dot {
-  width: 0.35rem;
-  height: 0.35rem;
-  border-radius: 999px;
-  background: #60a5fa;
-  animation: pulse 1.2s infinite ease-in-out;
+.spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid rgba(37, 99, 235, 0.2);
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
-.dot:nth-child(2) {
-  animation-delay: 0.15s;
-}
-
-.dot:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-.label {
-  margin-left: 0.15rem;
-}
-
-@keyframes pulse {
-  0%,
-  80%,
-  100% {
-    opacity: 0.2;
-    transform: scale(0.9);
-  }
-  40% {
-    opacity: 1;
-    transform: scale(1.2);
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Group, Teacher } from '../../types/schedule'
 import { getCourses, getGroupLevels, searchGroups, searchTeachers } from '../../api/schedule'
@@ -254,6 +254,7 @@ const showCourseMenu = ref(false)
 const showLevelMenu = ref(false)
 
 const searchBarRef = ref<HTMLElement | null>(null)
+const searchFocused = ref(false)
 
 const closeAllMenus = () => {
   showCourseMenu.value = false
@@ -294,6 +295,40 @@ const handleClickOutside = (e: MouseEvent) => {
   }
 }
 
+const onFind = () => {
+  showGroupList.value = true
+  searchBarRef.value?.querySelector('input')?.focus()
+}
+
+const onClear = async () => {
+  if (!hasQuery.value) return
+
+  if (mode.value === 'group') groupQuery.value = ''
+  else teacherQuery.value = ''
+
+  showGroupList.value = false
+  closeAllMenus()
+
+  await nextTick()
+
+  const input = searchBarRef.value?.querySelector<HTMLInputElement>('input')
+  if (input) {
+    input.value = ''
+    input.focus()
+  }
+}
+
+const hasQuery = computed(() => (mode.value === 'group' ? groupQuery.value.trim() : teacherQuery.value.trim()))
+
+const handleBarFocusIn = () => {
+  searchFocused.value = true
+}
+
+const handleBarFocusOut = (e: FocusEvent) => {
+  const next = e.relatedTarget as HTMLElement | null
+  if (next && searchBarRef.value?.contains(next)) return
+  searchFocused.value = false
+}
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleEsc)
@@ -306,16 +341,19 @@ onMounted(() => {
       v-if="showGroupList"
       class="overlay"
       @click="showGroupList=false; closeAllMenus()"
-    ></div>
+    />
 
-    <div class="card">
+    <p v-if="error" class="error">{{ error }}</p>
 
-      <p v-if="error" class="error">{{ error }}</p>
+    <div class="section">
+      <div class="dropdown-wrapper">
 
-      <div class="section">
-        <div class="dropdown-wrapper">
-
-          <div ref="searchBarRef" class="search-bar unified">
+          <div
+            ref="searchBarRef"
+            class="search-bar unified"
+            @focusin="handleBarFocusIn"
+            @focusout="handleBarFocusOut"
+          >
             <div class="mode-inline">
               <button
                 class="chip"
@@ -325,7 +363,6 @@ onMounted(() => {
               >
                 Группы
               </button>
-
               <button
                 class="chip"
                 :class="{ 'chip-active': mode === 'teacher' }"
@@ -335,12 +372,15 @@ onMounted(() => {
                 Преподаватели
               </button>
             </div>
+            <span class="sep" aria-hidden="true" />
 
-            <svg class="search-icon" viewBox="0 0 24 24">
-              <path fill="currentColor"
-                d="M21 20l-5.2-5.2a7 7 0 10-1 1L20 21zM5 11a6 6 0 1112 0A6 6 0 015 11z"/>
+            <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="currentColor"
+                fill-rule="evenodd"
+                d="M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM2 10.5a8.5 8.5 0 1 1 15.2 5.2l3.65 3.65a1 1 0 0 1-1.42 1.42l-3.65-3.65A8.5 8.5 0 0 1 2 10.5Z"
+              />
             </svg>
-
             <input
               v-if="mode === 'group'"
               v-model="groupQuery"
@@ -348,7 +388,6 @@ onMounted(() => {
               placeholder="Поиск группы..."
               @focus="showGroupList = true"
             />
-
             <input
               v-else
               v-model="teacherQuery"
@@ -357,6 +396,20 @@ onMounted(() => {
               @focus="handleGroupFocus"
             />
 
+            <template v-if="searchFocused">
+              <button
+                type="button"
+                class="btn-clear"
+                aria-label="Очистить"
+                :aria-disabled="!hasQuery"
+                :class="{ 'is-disabled': !hasQuery }"
+                @mousedown.prevent
+                @click.prevent="onClear"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              </button>
+            </template>
+            <span v-if="mode === 'group'" class="sep" aria-hidden="true" />
             <div v-if="mode === 'group'" class="filters-inline">
 
               <div class="filter-wrapper">
@@ -401,7 +454,6 @@ onMounted(() => {
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
 
@@ -409,30 +461,32 @@ onMounted(() => {
             v-if="mode === 'group'"
             :class="['list', { 'list-active': showGroupList }]"
           >
-            <button
-              v-for="g in filteredGroups"
-              :key="g.id"
-              class="item"
-              type="button"
-              @click="openGroup(g)"
-            >
-              <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
-                <img src="@/assets/group.png" width="32px" height="32">
-                <div>
-                  <div class="item-title">{{ g.name }}</div>
+            <div class="list-inner">
+              <button
+                v-for="g in filteredGroups"
+                :key="g.id"
+                class="item"
+                type="button"
+                @click="openGroup(g)"
+              >
+                <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+                  <img src="@/assets/group.png" width="32px" height="32">
+                  <div>
+                    <div class="item-title">{{ g.name }}</div>
                     <div class="item-sub">
                       {{ g.level }} · курс {{ g.course }} · {{ g.studyForm }}
                     </div>
                   </div>
                 </div>
-            </button>
+              </button>
 
-            <div v-if="loading" class="loading">
-              <div class="spinner"></div>
-            </div>
+              <div v-if="loading" class="loading">
+                <div class="spinner"></div>
+              </div>
 
-            <div v-if="!loading && !filteredGroups.length" class="empty">
-              Ничего не найдено
+              <div v-if="!loading && !filteredGroups.length" class="empty">
+                Ничего не найдено
+              </div>
             </div>
           </div>
 
@@ -440,36 +494,36 @@ onMounted(() => {
             v-if="mode === 'teacher'"
             :class="['list', { 'list-active': showGroupList }]"
           >
-            <button
-              v-for="t in filteredTeachers"
-              :key="t.id"
-              class="item"
-              type="button"
-              @click="openTeacher(t)"
-            > 
-              <div style="display: flex; flex-direction: row; gap: 13px; align-items: center;">
-                <img src="@/assets/teacher.png" width="25px">
-                <div>
-                  <div class="item-title">{{ t.label }}</div>
-                  <div class="item-sub">
-                    {{ t.department }}
+            <div class="list-inner">
+              <button
+                v-for="t in filteredTeachers"
+                :key="t.id"
+                class="item"
+                type="button"
+                @click="openTeacher(t)"
+              >
+                <div style="display: flex; flex-direction: row; gap: 13px; align-items: center;">
+                  <img src="@/assets/teacher.png" width="25px">
+                  <div>
+                    <div class="item-title">{{ t.label }}</div>
+                    <div class="item-sub">
+                      {{ t.department }}
+                    </div>
                   </div>
                 </div>
+              </button>
+
+              <div v-if="loading" class="loading">
+                <div class="spinner"></div>
               </div>
-            </button>
 
-            <div v-if="loading" class="loading">
-              <div class="spinner"></div>
-            </div>
-
-            <div v-if="!loading && !filteredTeachers.length" class="empty">
-              Ничего не найдено
+              <div v-if="!loading && !filteredTeachers.length" class="empty">
+                Ничего не найдено
+              </div>
             </div>
           </div>
 
-        </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -480,6 +534,15 @@ onMounted(() => {
 .filter-wrapper {
   position: relative;
   display: inline-flex;
+  justify-content: center;
+}
+
+.section {
+  position: relative;
+  z-index: 1001;
+  max-width: 820px;
+  width: 96%;
+  margin: 0 auto;
 }
 
 .dropdown-wrapper {
@@ -487,15 +550,19 @@ onMounted(() => {
 }
 
 .chip {
-  font-size: 0.75rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
+  font-size: 0.72rem;
+  height: var(--searchbar-control-height);
+  padding: 0 0.65rem;
+  border-radius: 9999px;
   border: 1px solid var(--border);
   background: transparent;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
   will-change: transform;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
 }
 
 .chip-active {
@@ -516,21 +583,6 @@ onMounted(() => {
 
 .chip-active::after {
   transform: scale(1);
-}
-
-.card {
-  position: relative;
-  z-index: 1000;
-  background: rgba(20, 118, 237, 0.037);
-  backdrop-filter: blur(30px);
-  padding: 7px;
-  border-radius: 30px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  max-width: 720px;
-  width: 90%;
-  margin: 0 auto;
-  transition: padding 0.3s ease, box-shadow 0.3s ease;
 }
 
 .error {
@@ -603,15 +655,19 @@ select.field-input::-ms-expand {
 }
 
 .search-bar {
+  --searchbar-height: 44px;
+  --searchbar-control-height: 30px;
+
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 999px;
+  min-height: var(--searchbar-height);
+  padding: 0 0.9rem;
+  border-radius: 9999px;
   border: 1px solid var(--border);
   background: #ffffff;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
   appearance: none;
   -webkit-appearance: none;
@@ -630,9 +686,46 @@ select.field-input::-ms-expand {
   position: relative;
 }
 
+.sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
 .mode-inline {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.3rem;
+}
+
+.btn-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--searchbar-control-height);
+  height: var(--searchbar-control-height);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-clear:hover:not(.is-disabled) {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+}
+
+.btn-clear.is-disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-clear.is-disabled:hover {
+  background: transparent;
+  color: #64748b;
 }
 
 .filters-inline {
@@ -643,43 +736,57 @@ select.field-input::-ms-expand {
 
 .filter-chip {
   font-size: 0.75rem;
-  padding: 0.35rem 0.7rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.05);
+  height: var(--searchbar-control-height);
+  padding: 0 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  color: #475569;
   cursor: pointer;
   white-space: nowrap;
-  transition: 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  will-change: transform;
 }
 
 .filter-chip:hover {
-  background: rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
 }
 
 .menu {
   position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 140px;
-  padding: 0.35rem;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  min-width: unset;
+  padding: 0.25rem;
   border-radius: 12px;
   background: #ffffff;
-  border: 1px solid var(--border);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
   animation: menuIn 0.28s cubic-bezier(.34,1.56,.64,1);
-  transform-origin: top left;
+  transform-origin: top center;
   z-index: 1100;
 }
 
 .menu-item {
-  padding: 0.45rem 0.8rem;
+  padding: 0.45rem 0.75rem;
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  color: #334155;
   cursor: pointer;
   transition: 0.15s ease;
 }
 
 .menu-item:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(15, 23, 42, 0.04);
+  color: #0f172a;
 }
 
 
@@ -689,7 +796,7 @@ select.field-input::-ms-expand {
   min-width: 18px;
   display: block;
   flex-shrink: 0;
-  color: #666;
+  color: #0f172a;
 }
 
 .search-input {
@@ -697,10 +804,17 @@ select.field-input::-ms-expand {
   background: transparent;
   outline: none;
   flex: 1;
-  font-size: 0.95rem;
+  min-width: 0;
+  font-size: 0.85rem;
   color: var(--text);
   appearance: none;
   -webkit-appearance: none;
+  height: var(--searchbar-control-height);
+  line-height: var(--searchbar-control-height);
+}
+
+.search-input::placeholder {
+  color: #94a3b8;
 }
 
 @keyframes fadeIn {
@@ -714,28 +828,35 @@ select.field-input::-ms-expand {
   }
 }
 
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
 .list {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
   right: 0;
 
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-
   max-height: 0;
   opacity: 0;
   overflow: hidden;
 
-  padding: 0 6px;
+  padding: 6px;
   border-radius: 20px;
 
   background: rgba(255,255,255,0.98);
   backdrop-filter: blur(20px);
 
   box-shadow: 0 25px 60px rgba(0,0,0,0.25);
-  z-index: 999;
+  z-index: 1001;
 
   transition:
     max-height 0.35s cubic-bezier(.4,0,.2,1),
@@ -746,7 +867,40 @@ select.field-input::-ms-expand {
 .list-active {
   max-height: 350px;
   opacity: 1;
+}
+
+.list-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-height: 338px;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  margin-right: 2px;
+  border-radius: 14px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+}
+
+.list-inner::-webkit-scrollbar {
+  width: 8px;
+}
+
+.list-inner::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+.list-inner::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.list-inner::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .item {
@@ -833,7 +987,7 @@ select.field-input::-ms-expand {
   width: 100vw;
   height: 100vh;
   background: rgba(0,0,0,0.35);
-  z-index: 1000;
+  z-index: 999;
 }
 </style>
  

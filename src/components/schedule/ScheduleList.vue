@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ScheduleWeek } from '../../types/schedule'
+import { formatDateFromISO } from '../../utils/date'
 
 const props = defineProps<{
   week: ScheduleWeek
@@ -39,7 +40,7 @@ function isCurrentLesson(dayWeek: string, startTime: string, endTime: string): b
             {{ day.dayWeek }}
           </span>
           <span class="day-date">
-            {{ day.date }}
+            {{ formatDateFromISO(day.date) }}
           </span>
         </div>
       </div>

@@ -5,7 +5,10 @@ import { getGroupSchedule, getTeacherSchedule, getCurrentWeekCount } from '../ap
 import type { ApiError } from '../api/client'
 import {
   getCurrentWeekRange,
+  getWeekRangeForDate,
+  getWeekParity,
   formatDateISO,
+  formatDateDDMM,
   parseTimePeriod,
   getDaysOfWeek,
 } from '../utils/date'
@@ -72,6 +75,8 @@ export function useSchedule(options: UseScheduleOptions) {
   const week = ref<ScheduleWeek | null>(null)
   const selectedWeekCount = ref<number | null>(null)
   const serverWeekCount = ref<number | null>(null)
+  /** Понедельник отображаемой недели (для навигации по датам) */
+  const weekStartDate = ref<Date | null>(null)
 
   const label = computed(() => {
     if (!week.value) return ''
@@ -84,24 +89,31 @@ export function useSchedule(options: UseScheduleOptions) {
     return serverWeekCount.value === 1 ? 'Нечётная' : 'Чётная'
   })
 
-  const load = async (weekCountOverride?: number) => {
+  const load = async (weekCountOverride?: number, weekStartOverride?: Date) => {
     if (!options.id) return
     loading.value = true
     error.value = null
 
     try {
-      // Получаем текущую четность недели, если не указана
+      const weekRange = weekStartOverride
+        ? getWeekRangeForDate(weekStartOverride)
+        : getCurrentWeekRange()
+      weekStartDate.value = new Date(weekRange.start)
+
       let weekCount = weekCountOverride ?? selectedWeekCount.value
       if (weekCount === null) {
         const config = await getCurrentWeekCount()
         weekCount = config.weekCount
         serverWeekCount.value = config.weekCount
-        selectedWeekCount.value = weekCount
       }
+      if (weekStartOverride !== undefined) {
+        weekCount = getWeekParity(weekRange.start)
+      }
+      selectedWeekCount.value = weekCount
 
-      const weekRange = getCurrentWeekRange()
       const params: ScheduleParams = {
         weekCount,
+        date: formatDateDDMM(weekRange.start),
       }
 
       let response
@@ -124,9 +136,27 @@ export function useSchedule(options: UseScheduleOptions) {
 
   const changeWeek = async () => {
     const current = selectedWeekCount.value ?? 1
-    // Переключаем между 1 и 2
     const nextWeekCount = current === 1 ? 2 : 1
-    await load(nextWeekCount)
+    await load(nextWeekCount, weekStartDate.value ?? undefined)
+  }
+
+  const goToPrevWeek = async () => {
+    const start = weekStartDate.value ?? getCurrentWeekRange().start
+    const prev = new Date(start)
+    prev.setDate(prev.getDate() - 7)
+    await load(selectedWeekCount.value ?? undefined, prev)
+  }
+
+  const goToNextWeek = async () => {
+    const start = weekStartDate.value ?? getCurrentWeekRange().start
+    const next = new Date(start)
+    next.setDate(next.getDate() + 7)
+    await load(selectedWeekCount.value ?? undefined, next)
+  }
+
+  const goToWeekByDate = async (date: Date) => {
+    const { start } = getWeekRangeForDate(date)
+    await load(selectedWeekCount.value ?? undefined, start)
   }
 
   onMounted(() => {
@@ -149,7 +179,11 @@ export function useSchedule(options: UseScheduleOptions) {
     serverWeekCount,
     serverWeekLabel,
     selectedWeekCount,
+    weekStartDate,
     changeWeek,
+    goToPrevWeek,
+    goToNextWeek,
+    goToWeekByDate,
   }
 }
 
