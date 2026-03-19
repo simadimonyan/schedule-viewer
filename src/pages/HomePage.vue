@@ -67,6 +67,8 @@ onMounted(() => {
   padding: 0;
   margin: 0;
   gap: 0;
+  position: relative;
+  top: 50px;
 }
 
 .hero {

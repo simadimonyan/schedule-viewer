@@ -589,6 +589,7 @@ onMounted(() => {
   max-width: 820px;
   width: 96%;
   margin: 0 auto;
+  transform: none;
 }
 
 .dropdown-wrapper {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onUnmounted } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSchedule } from '../hooks/useSchedule'
 import { formatDateFromISO } from '../utils/date'
@@ -15,29 +15,6 @@ const teacherId = computed(() => String(route.params.teacherId || ''))
 const { loading, error, week, serverWeekLabel, weekStartDate, goToPrevWeek, goToNextWeek, goToWeekByDate } = useSchedule({
   mode: 'teacher',
   id: teacherId.value,
-})
-
-const showSpinner = ref(false)
-const LOADING_DELAY_MS = 800
-let loadingTimer: ReturnType<typeof setTimeout> | null = null
-
-watch(loading, (isLoading) => {
-  if (loadingTimer) {
-    clearTimeout(loadingTimer)
-    loadingTimer = null
-  }
-  if (isLoading && !week.value) {
-    loadingTimer = setTimeout(() => {
-      showSpinner.value = true
-      loadingTimer = null
-    }, LOADING_DELAY_MS)
-  } else {
-    showSpinner.value = false
-  }
-})
-
-onUnmounted(() => {
-  if (loadingTimer) clearTimeout(loadingTimer)
 })
 
 const weekRangeLabel = computed(() => {
@@ -71,9 +48,8 @@ const displayedWeekLabel = computed(() => {
       <div v-if="error" key="error" class="content content-center">
         <ErrorMessage :message="error" />
       </div>
-      <div v-else-if="loading && !week" key="loading" class="content schedule-loading">
-        <div class="schedule-skeleton" />
-        <div v-if="showSpinner" class="schedule-loading-state">
+      <div v-else-if="!week" key="loading" class="content schedule-loading">
+        <div class="schedule-loading-state">
           <Loader />
         </div>
       </div>
@@ -103,9 +79,7 @@ const displayedWeekLabel = computed(() => {
           <ScheduleList :week="week" />
         </div>
       </div>
-      <div v-else-if="!loading && !error" key="empty" class="content content-center">
-        <p class="placeholder">Нет данных расписания для выбранного преподавателя.</p>
-      </div>
+      <!-- intentionally empty: while week is loading/unavailable we show only spinner -->
     </Transition>
   </section>
 </template>
@@ -114,7 +88,7 @@ const displayedWeekLabel = computed(() => {
 .page {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 0.75rem;
 }
 
 .page-header .title {
@@ -137,15 +111,15 @@ const displayedWeekLabel = computed(() => {
 .toolbar {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.35rem;
 }
 
 .status {
-  min-height: 1.4rem;
+  min-height: 0.2rem;
 }
 
 .content {
-  margin-top: 0.25rem;
+  margin-top: 0.1rem;
 }
 
 .content-center {
@@ -189,27 +163,16 @@ const displayedWeekLabel = computed(() => {
 .schedule-loading {
   position: relative;
   min-height: 280px;
-}
-
-.schedule-skeleton {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radiusLg);
-  background: linear-gradient(
-    90deg,
-    rgba(148, 163, 184, 0.06) 0%,
-    rgba(148, 163, 184, 0.12) 50%,
-    rgba(148, 163, 184, 0.06) 100%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shine 1.2s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .schedule-loading-state {
   position: relative;
-  z-index: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: 3rem;
 }
 
@@ -232,12 +195,6 @@ const displayedWeekLabel = computed(() => {
   opacity: 0.7;
   pointer-events: none;
   transition: opacity 0.2s ease;
-}
-
-@keyframes skeleton-shine {
-  to {
-    background-position: 200% 0;
-  }
 }
 
 @media (min-width: 768px) {

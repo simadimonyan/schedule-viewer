@@ -14,7 +14,8 @@
 .spinner {
   width: 1.5rem;
   height: 1.5rem;
-  border: 2px solid rgba(15, 23, 42, 0.12);
+  /* Чуть менее прозрачная обводка — чтобы через неё не просвечивал фон/мерцание */
+  border: 2px solid rgba(15, 23, 42, 0.2);
   border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
