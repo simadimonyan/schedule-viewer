@@ -131,7 +131,13 @@ const loadLevels = async () => {
   if (!selectedCourse.value) return
 
   const res = await getGroupLevels(selectedCourse.value)
-  levels.value = res.levels
+  // В контекстном меню уровень должен быть: "Все" (отдельно) + дальше.
+  // Сортируем по возрастанию количества символов (короче -> раньше),
+  // при равной длине — по алфавиту для кириллицы.
+  levels.value = [...res.levels].sort((a, b) => {
+    const lenDiff = a.length - b.length
+    return lenDiff !== 0 ? lenDiff : a.localeCompare(b, 'ru')
+  })
 
   // если сохранённый уровень существует и входит в список — оставляем его
   if (selectedLevel.value && res.levels.includes(selectedLevel.value)) {
@@ -140,7 +146,7 @@ const loadLevels = async () => {
     selectedLevel.value = ''
   }
 
-  setWithTTL(`cached_levels_${selectedCourse.value}`, res.levels, ONE_DAY)
+  setWithTTL(`cached_levels_${selectedCourse.value}`, levels.value, ONE_DAY)
 }
 
 const loadGroups = async () => {
@@ -237,7 +243,12 @@ onMounted(async () => {
 
     if (selectedCourse.value) {
       const cachedLevels = getWithTTL<string[]>(`cached_levels_${selectedCourse.value}`)
-      if (cachedLevels) levels.value = cachedLevels
+      if (cachedLevels) {
+        levels.value = [...cachedLevels].sort((a, b) => {
+          const lenDiff = a.length - b.length
+          return lenDiff !== 0 ? lenDiff : a.localeCompare(b, 'ru')
+        })
+      }
     }
 
     const savedCourse = getSimple<number>('selected_course')
@@ -333,11 +344,6 @@ const closeOverlay = () => {
   showGroupList.value = false
   closeAllMenus()
   searchBarRef.value?.querySelector<HTMLInputElement>('input')?.blur()
-}
-
-const onFind = () => {
-  showGroupList.value = true
-  searchBarRef.value?.querySelector('input')?.focus()
 }
 
 const onClear = async () => {
