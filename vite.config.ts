@@ -14,9 +14,9 @@ export default defineConfig({
     proxy: {
       // Проксируем все запросы к внешнему API, чтобы обойти CORS в dev-режиме
       '/schedule': {
-        target: 'https://rapi.imsit.ru/schedule',
+        target: 'https://api.myimsit.ru/schedule',
         changeOrigin: true,
-        secure: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/schedule/, ''),
       },
     },

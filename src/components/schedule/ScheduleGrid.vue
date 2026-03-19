@@ -26,6 +26,23 @@ const todayDayWeek = computed(() => {
   return map[now.value.getDay()]!
 })
 
+function toISODateLocal(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const todayISO = computed(() => toISODateLocal(now.value))
+
+function isTodayDate(iso: string): boolean {
+  return iso === todayISO.value
+}
+
+const displayedDays = computed(() => {
+  return props.week.days.filter((d) => d.dayWeek !== 'Воскресенье')
+})
+
 // Получаем все уникальные временные слоты из всех дней
 const allTimeSlots = computed(() => {
   const slots = new Set<string>()
@@ -46,6 +63,11 @@ function slotDurationMin(timeSlot: string): number {
     return (h || 0) * 60 + (m || 0)
   }
   return (toM(end || '') - toM(start || '')) || 90
+}
+
+function splitTimeSlot(timeSlot: string): { start: string; end: string } {
+  const [start, end] = timeSlot.split('-').map((s) => s?.trim().replace('.', ':'))
+  return { start: start || '', end: end || '' }
 }
 
 const timeRange = computed(() => {
@@ -78,8 +100,12 @@ const currentTimeLineStyle = computed(() => {
 })
 
 const showCurrentTimeLine = computed(() => {
-  const isTodayInWeek = props.week.days.some((d) => d.dayWeek === todayDayWeek.value)
+  const isTodayInWeek = displayedDays.value.some((d) => isTodayDate(d.date))
   return currentTimeLineStyle.value !== null && isTodayInWeek
+})
+
+const todayIndex = computed(() => {
+  return displayedDays.value.findIndex((d) => isTodayDate(d.date))
 })
 
 // Получаем занятия для конкретного дня и времени
@@ -92,9 +118,9 @@ function toMinutes(hhmm: string): number {
   return (h || 0) * 60 + (m || 0)
 }
 
-function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
+function isCurrentLesson(dayISO: string, lesson?: Lesson): boolean {
   if (!lesson) return false
-  if (dayWeek !== todayDayWeek.value) return false
+  if (!isTodayDate(dayISO)) return false
   const n = now.value
   const minutes = n.getHours() * 60 + n.getMinutes()
   const start = toMinutes(lesson.startTime)
@@ -106,18 +132,21 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
 <template>
   <div class="grid">
     <div class="grid-header">
-      <div class="grid-cell time-col">Время</div>
+      <div class="grid-cell meta-col">
+        <span class="meta-head">
+          <span class="pair-label">№</span>
+          <span class="time-label">Время</span>
+        </span>
+      </div>
       <div
-        v-for="day in week.days"
+        v-for="day in displayedDays"
         :key="day.date"
         class="grid-cell day-col"
-        :class="{ today: day.dayWeek === todayDayWeek }"
+        :class="{ today: isTodayDate(day.date) }"
       >
-        <div class="day-name">
-          {{ day.dayWeek }}
-        </div>
-        <div class="day-date">
-          {{ formatDateFromISO(day.date) }}
+        <div class="day-head">
+          <span class="day-name">{{ day.dayWeek }}</span>
+          <span class="day-date">{{ formatDateFromISO(day.date) }}</span>
         </div>
       </div>
     </div>
@@ -130,65 +159,96 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
         :style="currentTimeLineStyle"
         aria-hidden="true"
       >
-        <span class="current-time-dot" />
+        <div class="current-time-seg meta-col" />
+        <div
+          v-for="(day, idx) in displayedDays"
+          :key="day.date"
+          class="current-time-seg"
+          :class="{ today: idx === todayIndex }"
+        >
+          <span v-if="idx === todayIndex" class="current-time-dot" />
+        </div>
       </div>
 
       <div
-        v-for="timeSlot in allTimeSlots"
+        v-for="(timeSlot, slotIdx) in allTimeSlots"
         :key="timeSlot"
-        class="grid-row"
-        :style="{ minHeight: slotDurationMin(timeSlot) * PX_PER_MIN + 'px' }"
+        class="grid-row-group"
       >
-        <div class="grid-cell time-col">
-          {{ timeSlot }}
+        <div
+          class="grid-row"
+          :style="{ minHeight: slotDurationMin(timeSlot) * PX_PER_MIN + 'px' }"
+        >
+          <div class="grid-cell meta-col">
+            <div class="pair-num">{{ slotIdx + 1 }}</div>
+            <div class="time-stack">
+              <div class="time-start">{{ splitTimeSlot(timeSlot).start }}</div>
+              <div class="time-end">{{ splitTimeSlot(timeSlot).end }}</div>
+            </div>
+          </div>
+
+          <div
+            v-for="day in displayedDays"
+            :key="day.date"
+            class="grid-cell lesson-cell"
+            :class="{ today: isTodayDate(day.date) }"
+          >
+            <template v-if="getLessonForSlot(day.lessons, timeSlot)">
+              <div
+                class="lesson card"
+                :class="{ current: isCurrentLesson(day.date, getLessonForSlot(day.lessons, timeSlot)) }"
+              >
+                <div class="lesson-chips">
+                  <span
+                    v-if="getLessonForSlot(day.lessons, timeSlot)?.lessonType"
+                    class="chip chip-type"
+                  >
+                    {{ getLessonForSlot(day.lessons, timeSlot)?.lessonType }}
+                  </span>
+                  <span
+                    v-if="getLessonForSlot(day.lessons, timeSlot)?.auditory"
+                    class="chip chip-auditory"
+                  >
+                    {{ getLessonForSlot(day.lessons, timeSlot)?.auditory }}
+                  </span>
+                </div>
+                <div class="lesson-subject">
+                  {{ getLessonForSlot(day.lessons, timeSlot)?.lessonName }}
+                </div>
+                <div
+                  v-if="mode !== 'teacher' && getLessonForSlot(day.lessons, timeSlot)?.teacher"
+                  class="lesson-teacher"
+                >
+                  {{ getLessonForSlot(day.lessons, timeSlot)?.teacher?.label }}
+                </div>
+                <div
+                  v-if="mode !== 'group' && getLessonForSlot(day.lessons, timeSlot)?.group"
+                  class="lesson-group"
+                >
+                  {{ getLessonForSlot(day.lessons, timeSlot)?.group?.name }}
+                </div>
+              </div>
+            </template>
+            <div
+              v-else
+              class="lesson empty"
+            />
+          </div>
         </div>
 
         <div
-          v-for="day in week.days"
-          :key="day.date"
-          class="grid-cell lesson-cell"
-          :class="{ today: day.dayWeek === todayDayWeek }"
+          v-if="slotIdx !== allTimeSlots.length - 1"
+          class="break-row"
+          aria-hidden="true"
         >
-          <template v-if="getLessonForSlot(day.lessons, timeSlot)">
-            <div
-              class="lesson card"
-              :class="{ current: isCurrentLesson(day.dayWeek, getLessonForSlot(day.lessons, timeSlot)) }"
-            >
-              <div class="lesson-chips">
-                <span
-                  v-if="getLessonForSlot(day.lessons, timeSlot)?.lessonType"
-                  class="chip chip-type"
-                >
-                  {{ getLessonForSlot(day.lessons, timeSlot)?.lessonType }}
-                </span>
-                <span
-                  v-if="getLessonForSlot(day.lessons, timeSlot)?.auditory"
-                  class="chip chip-auditory"
-                >
-                  {{ getLessonForSlot(day.lessons, timeSlot)?.auditory }}
-                </span>
-              </div>
-              <div class="lesson-subject">
-                {{ getLessonForSlot(day.lessons, timeSlot)?.lessonName }}
-              </div>
-              <div
-                v-if="mode !== 'teacher' && getLessonForSlot(day.lessons, timeSlot)?.teacher"
-                class="lesson-teacher"
-              >
-                {{ getLessonForSlot(day.lessons, timeSlot)?.teacher?.label }}
-              </div>
-              <div
-                v-if="mode !== 'group' && getLessonForSlot(day.lessons, timeSlot)?.group"
-                class="lesson-group"
-              >
-                {{ getLessonForSlot(day.lessons, timeSlot)?.group?.name }}
-              </div>
-            </div>
-          </template>
-        <div
-          v-else
-          class="lesson empty"
-        />
+          <div class="grid-cell meta-col break-meta">
+            <span class="break-label">Перемена</span>
+          </div>
+          <div
+            v-for="day in displayedDays"
+            :key="day.date + '_break_' + slotIdx"
+            class="grid-cell break-cell"
+          />
         </div>
       </div>
     </div>
@@ -197,9 +257,11 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
 
 <style scoped>
 .grid {
-  overflow: auto;
+  overflow: visible;
   background: var(--surface);
-  max-height: calc(100vh - 10rem);
+  max-height: none;
+  --meta-col-width: 112px;
+  --day-col-min: 120px;
 }
 
 .grid-body {
@@ -210,17 +272,29 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
   position: absolute;
   left: 0;
   right: 0;
-  height: 2px;
-  background: #e53935;
+  height: 0;
   pointer-events: none;
   z-index: 2;
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--meta-col-width) repeat(6, minmax(var(--day-col-min), 1fr));
   align-items: center;
+}
+
+.current-time-seg {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed rgba(15, 23, 42, 0.12);
+}
+
+.current-time-seg.today {
+  border-top-style: solid;
+  border-top-color: #e53935;
 }
 
 .current-time-dot {
   position: absolute;
   left: 0;
+  top: 0;
   width: 10px;
   height: 10px;
   border-radius: 50%;
@@ -233,8 +307,20 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
 .grid-header,
 .grid-row {
   display: grid;
-  grid-template-columns: minmax(90px, 0.7fr) repeat(7, minmax(120px, 1fr));
+  grid-template-columns: var(--meta-col-width) repeat(6, minmax(var(--day-col-min), 1fr));
   gap: 0;
+}
+
+.break-row {
+  display: grid;
+  grid-template-columns: var(--meta-col-width) repeat(6, minmax(var(--day-col-min), 1fr));
+  gap: 0;
+  height: 46px;
+  align-items: stretch;
+}
+
+.grid-row-group {
+  width: 100%;
 }
 
 .grid-header {
@@ -270,20 +356,165 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
   justify-content: center;
 }
 
-.time-col {
+.grid-header .grid-cell.day-col {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.day-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.meta-col {
   background: transparent;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.grid-row .meta-col {
+  align-items: flex-start;
+  padding-top: 0.35rem;
+}
+
+.grid-header .meta-col {
+  align-items: center;
+}
+
+.meta-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pair-label,
+.time-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.grid-cell.meta-col {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  font-size: 0.72rem;
+}
+
+.pair-num {
+  width: 28px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.02);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: #0f172a;
+  flex: 0 0 auto;
+}
+
+.time-stack {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-row .time-stack {
+  justify-content: flex-start;
+}
+
+.time-start,
+.time-end {
+  line-height: 1.05;
+}
+
+.time-end {
+  margin-top: 2px;
+  opacity: 0.75;
+}
+
+.break-meta {
+  justify-content: center;
+}
+
+.break-label {
+  width: 100%;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(15, 23, 42, 0.6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 0.65rem;
+  border-radius: 9999px;
+  border: 1px dashed var(--primaryBorder);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.break-row {
+  align-items: center;
+}
+
+.break-row .grid-cell {
+  padding: 0.3rem 0.35rem;
+  /* убираем обычную сетку у строки перемены */
+  border-right: none;
+  border-bottom: none;
+  background: rgba(15, 23, 42, 0.01);
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+.break-row .grid-cell {
+  border-bottom: 1px dashed var(--primaryBorder);
+  border-top: 1px dashed var(--primaryBorder);
+}
+
+.break-row .grid-cell:first-child {
+  border-left: 1px dashed var(--primaryBorder);
+}
+
+.break-row .grid-cell:last-child {
+  border-right: 1px dashed var(--primaryBorder);
+}
+
+.break-row .break-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primarySoft);
 }
 
 .day-name {
   font-size: 0.75rem;
   font-weight: 600;
   color: #0f172a;
+  text-align: left;
 }
 
 .day-date {
-  margin-top: 0.12rem;
   font-size: 0.7rem;
   color: #64748b;
+  text-align: right;
 }
 
 .lesson-cell {
@@ -325,7 +556,7 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
   width: 5px;
   height: 68%;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(37, 99, 235, 0.75), rgba(29, 78, 216, 0.7));
+  background: var(--primary);
   box-shadow: none;
   transform: translateY(-50%);
 }
@@ -353,8 +584,8 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
 }
 
 .chip-type {
-  background: rgba(37, 99, 235, 0.12);
-  color: #1d4ed8;
+  background: var(--primarySoft);
+  color: var(--primary);
 }
 
 .chip-auditory {
@@ -391,14 +622,24 @@ function isCurrentLesson(dayWeek: string, lesson?: Lesson): boolean {
   color: var(--text);
 }
 
-.today {
-  background: rgba(37, 99, 235, 0.05);
+.grid-cell.today {
+  background: var(--primarySoft);
 }
 
 @media (max-width: 1023px) {
+  .grid {
+    --meta-col-width: 96px;
+    --day-col-min: 110px;
+  }
+
+  .current-time-line,
   .grid-header,
   .grid-row {
-    grid-template-columns: minmax(70px, 0.7fr) repeat(7, minmax(110px, 1fr));
+    grid-template-columns: var(--meta-col-width) repeat(6, minmax(var(--day-col-min), 1fr));
+  }
+
+  .break-row {
+    grid-template-columns: var(--meta-col-width) repeat(6, minmax(var(--day-col-min), 1fr));
   }
 }
 </style>

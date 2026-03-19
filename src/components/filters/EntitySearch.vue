@@ -91,27 +91,40 @@ const error = ref<string | null>(null)
 
 const filteredGroups = computed(() => {
   const q = groupQuery.value.trim().toLowerCase()
+  console.log('group query:', q, 'groups:', groups.value.length)
   if (!q) return groups.value
-  return groups.value.filter((g) => g.name.toLowerCase().includes(q))
+  const filtered = groups.value.filter((g) => g.name.toLowerCase().includes(q))
+  console.log('filtered:', filtered)
+  return filtered
 })
 
 const filteredTeachers = computed(() => {
   const q = teacherQuery.value.trim().toLowerCase()
+  console.log('teacher query:', q, 'teachers:', teachers.value.length)
   if (!q) return teachers.value
-  return teachers.value.filter((t) => t.label.toLowerCase().includes(q))
+  const filtered = teachers.value.filter((t) => t.label.toLowerCase().includes(q))
+  console.log('filtered teachers:', filtered)
+  return filtered
 })
 
 const loadCourses = async () => {
-  const res = await getCourses()
-  const sorted = [...res.courses].sort((a, b) => a - b)
-  courses.value = sorted
+  console.log('Loading courses...')
+  try {
+    const res = await getCourses()
+    console.log('Courses loaded:', res.courses)
+    const sorted = [...res.courses].sort((a, b) => a - b)
+    courses.value = sorted
 
-  // не перезаписываем выбранный курс, если он уже восстановлен
-  if (!selectedCourse.value) {
-    selectedCourse.value = sorted[0] ?? null
+    // не перезаписываем выбранный курс, если он уже восстановлен
+    if (!selectedCourse.value) {
+      selectedCourse.value = sorted[0] ?? null
+    }
+
+    setWithTTL('cached_courses', sorted, ONE_DAY)
+  } catch (e) {
+    console.error('Failed to load courses:', e)
+    throw e
   }
-
-  setWithTTL('cached_courses', sorted, ONE_DAY)
 }
 
 const loadLevels = async () => {
@@ -131,22 +144,34 @@ const loadLevels = async () => {
 }
 
 const loadGroups = async () => {
-  if (!selectedCourse.value) return
+  if (!selectedCourse.value) {
+    console.log('loadGroups: selectedCourse is null, skipping')
+    return
+  }
 
   const cacheKey = `cached_groups_${selectedCourse.value}_${selectedLevel.value || 'all'}`
+  console.log('loadGroups cacheKey:', cacheKey)
   const cached = getWithTTL<Group[]>(cacheKey)
-  if (cached) {
+  if (cached && cached.length > 0) {
+    console.log('loadGroups: using cached data, count:', cached.length)
     groups.value = cached
     return
+  } else if (cached && cached.length === 0) {
+    console.log('loadGroups: cached data is empty, ignoring cache and fetching fresh')
+  } else {
+    console.log('loadGroups: no cached data')
   }
 
   loading.value = true
   error.value = null
   try {
+    console.log('loadGroups: fetching from API, course:', selectedCourse.value, 'level:', selectedLevel.value)
     const res = await searchGroups(selectedCourse.value, selectedLevel.value || undefined)
+    console.log('loadGroups: API response groups count:', res.groups.length)
     groups.value = res.groups
     setWithTTL(cacheKey, res.groups, ONE_DAY)
   } catch (e) {
+    console.error('loadGroups: API error:', e)
     error.value = (e as { message?: string }).message || 'Не удалось загрузить группы'
     groups.value = []
   } finally {
@@ -156,19 +181,28 @@ const loadGroups = async () => {
 
 const loadTeachers = async () => {
   const cacheKey = `cached_teachers_${department.value.trim() || 'all'}`
+  console.log('loadTeachers cacheKey:', cacheKey)
   const cached = getWithTTL<Teacher[]>(cacheKey)
-  if (cached) {
+  if (cached && cached.length > 0) {
+    console.log('loadTeachers: using cached data, count:', cached.length)
     teachers.value = cached
     return
+  } else if (cached && cached.length === 0) {
+    console.log('loadTeachers: cached data is empty, ignoring cache and fetching fresh')
+  } else {
+    console.log('loadTeachers: no cached data')
   }
 
   loading.value = true
   error.value = null
   try {
+    console.log('loadTeachers: fetching from API, department:', department.value)
     const res = await searchTeachers(department.value.trim() || undefined)
+    console.log('loadTeachers: API response teachers count:', res.teachers.length)
     teachers.value = res.teachers
     setWithTTL(cacheKey, res.teachers, ONE_DAY)
   } catch (e) {
+    console.error('loadTeachers: API error:', e)
     error.value = (e as { message?: string }).message || 'Не удалось загрузить преподавателей'
     teachers.value = []
   } finally {
@@ -344,7 +378,7 @@ onMounted(() => {
 <template>
   <div class="search-overlay-wrapper">
     <div
-      v-if="searchFocused || showGroupList || showCourseMenu || showLevelMenu"
+      v-if="searchFocused || showGroupList"
       class="overlay"
       @click="closeOverlay"
     />

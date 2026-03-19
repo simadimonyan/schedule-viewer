@@ -110,7 +110,7 @@ const displayedWeekLabel = computed(() => {
   </section>
 </template>
 
-<style scoped>
+<style scoped> 
 .page {
   display: flex;
   flex-direction: column;

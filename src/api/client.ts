@@ -36,6 +36,8 @@ export async function apiGet<T>(path: string, options: RequestOptions = {}): Pro
     if (qs) requestUrl += (requestUrl.includes('?') ? '&' : '?') + qs
   }
 
+  console.log('API request:', requestUrl, 'token:', token ? '***' : 'none')
+
   const response = await fetch(requestUrl, {
     method: 'GET',
     ...options,
@@ -48,14 +50,22 @@ export async function apiGet<T>(path: string, options: RequestOptions = {}): Pro
 
   if (!response.ok) {
     let message = `Ошибка запроса (${response.status})`
+    let responseBody = null
     try {
-      const data = (await response.json()) as { message?: string }
+      responseBody = await response.text()
+      const data = JSON.parse(responseBody) as { message?: string }
       if (data?.message) {
         message = data.message
       }
     } catch {
       // ignore
     }
+    console.error('API request failed:', {
+      url: requestUrl,
+      status: response.status,
+      statusText: response.statusText,
+      body: responseBody,
+    })
 
     const err: ApiError = {
       message,

@@ -95,6 +95,14 @@ function nextMonth() {
   viewDate.value = new Date(year.value, month.value + 1)
 }
 
+function goToday() {
+  const t = new Date()
+  viewDate.value = new Date(t)
+  emit('update:modelValue', t)
+  emit('select', t)
+  emit('update:open', false)
+}
+
 function select(day: (typeof days.value)[0]) {
   emit('update:modelValue', day.date)
   emit('select', day.date)
@@ -145,6 +153,13 @@ const dropdownStyle = computed(() => {
             ‹
           </button>
           <span class="calendar-title">{{ monthLabel }}</span>
+          <button
+            type="button"
+            class="cal-today"
+            @click="goToday"
+          >
+            Сегодня
+          </button>
           <button
             type="button"
             class="cal-btn nav"
@@ -206,6 +221,31 @@ const dropdownStyle = computed(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.6rem;
+}
+
+.cal-today {
+  height: 2rem;
+  padding: 0 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.02);
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  will-change: transform;
+}
+
+.cal-today:hover {
+  transform: translateY(-1px);
+  border-color: rgba(148, 163, 184, 0.4);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+}
+
+.cal-today:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .calendar-title {
@@ -273,8 +313,8 @@ const dropdownStyle = computed(() => {
 }
 
 .cal-day:hover {
-  background: rgba(37, 99, 235, 0.1);
-  color: #1d4ed8;
+  background: var(--primarySoft);
+  color: var(--primary);
 }
 
 .cal-day.other {
@@ -282,8 +322,8 @@ const dropdownStyle = computed(() => {
 }
 
 .cal-day.today {
-  background: rgba(37, 99, 235, 0.15);
-  color: #1d4ed8;
+  background: var(--primarySoft);
+  color: var(--primary);
   font-weight: 600;
 }
 
