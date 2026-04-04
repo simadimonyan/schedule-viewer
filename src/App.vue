@@ -30,16 +30,24 @@ import AppFooter from './components/layout/AppFooter.vue'
 
 .app-main {
   flex: 1;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0.5rem 1rem 2rem;
   width: 100%;
+  margin: 0;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (min-width: 768px) {
   .app-main {
-    padding: 0.5rem 1.5rem 3rem;
+    padding: 0 100px;
   }
+}
+
+/* Let pages stretch to fill the space between header and footer */
+:deep(.home),
+:deep(.page) {
+  flex: 1;
+  min-height: 0;
 }
 
 /* Переходы между страницами */

@@ -46,9 +46,8 @@
 }
 
 .footer-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0.75rem 1rem 1.25rem;
+  width: 100%;
+  padding: 0.65rem 20px 1.1rem;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -86,7 +85,7 @@
 
 @media (min-width: 768px) {
   .footer-inner {
-    padding: 0.9rem 1.5rem 1.4rem;
+    padding: 0.8rem 100px 1.25rem;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;

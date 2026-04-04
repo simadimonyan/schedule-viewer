@@ -30,20 +30,6 @@ const displayedWeekLabel = computed(() => {
 
 <template>
   <section class="page">
-    <header class="page-header">
-      <h1 class="title">Расписание группы</h1>
-      <p class="subtitle">
-        Группа:
-        <span class="accent">
-          {{ groupId }}
-        </span>
-      </p>
-    </header>
-
-    <div class="toolbar">
-      <div class="status" />
-    </div>
-
     <Transition name="schedule-fade" mode="out-in">
       <div v-if="error" key="error" class="content content-center">
         <ErrorMessage :message="error" />
@@ -88,38 +74,11 @@ const displayedWeekLabel = computed(() => {
 .page {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-}
-
-.page-header .title {
-  margin: 0;
-  font-size: 1.4rem;
-  font-weight: 600;
-}
-
-.subtitle {
-  margin: 0.35rem 0 0;
-  font-size: 0.9rem;
-  color: var(--text);
-}
-
-.accent {
-  color: var(--text);
-  font-weight: 500;
-}
-
-.toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.status {
-  min-height: 0.2rem;
+  gap: 0;
 }
 
 .content {
-  margin-top: 0.1rem;
+  margin-top: 0;
 }
 
 .content-center {

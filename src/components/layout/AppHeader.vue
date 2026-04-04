@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -12,6 +12,18 @@ const goHome = () => {
 }
 
 const scrolled = ref(false)
+
+const scheduleOwnerText = computed(() => {
+  if (route.name === 'group-schedule') {
+    return `Группа: ${String(route.params.groupId ?? '')}`
+  }
+  if (route.name === 'teacher-schedule') {
+    return `Преподаватель: ${String(route.params.teacherId ?? '')}`
+  }
+  return ''
+})
+
+const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
 
 onMounted(() => {
   const handleScroll = () => {
@@ -43,7 +55,17 @@ onMounted(() => {
         </RouterLink>
       </nav> -->
 
-      <span class="subtitle">Ваше расписание всегда под рукой!</span>
+      <div class="header-center">
+        <span v-if="showCenterOwnerText" class="owner-chip">
+          {{ scheduleOwnerText }}
+        </span>
+      </div>
+
+      <div class="header-right">
+        <span class="subtitle">
+          Ваше расписание всегда под рукой!
+        </span>
+      </div>
     </div>
   </header>
 </template>
@@ -65,13 +87,24 @@ onMounted(() => {
 }
 
 .header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0.75rem 1rem;
-  display: flex;
+  width: 100%;
+  padding: 0.6rem 20px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
+}
+
+.header-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.header-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .brand {
@@ -124,6 +157,19 @@ onMounted(() => {
   color: var(--text);
 }
 
+.owner-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: var(--primarySoft);
+  border: 1px solid var(--primaryBorder);
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
 .nav {
   display: flex;
   gap: 0.75rem;
@@ -145,7 +191,7 @@ onMounted(() => {
 
 @media (min-width: 768px) {
   .header-inner {
-    padding: 0.9rem 1.5rem;
+    padding: 0.75rem 100px;
   }
 }
 </style>

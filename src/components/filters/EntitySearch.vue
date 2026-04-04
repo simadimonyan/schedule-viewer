@@ -382,7 +382,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="search-overlay-wrapper">
+  <div class="search-overlay-wrapper" :class="{ 'is-search-focused': searchFocused }">
     <div
       v-if="searchFocused || showGroupList"
       class="overlay"
@@ -704,7 +704,6 @@ select.field-input::-ms-expand {
 .search-bar {
   --searchbar-height: 44px;
   --searchbar-control-height: 30px;
-
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -726,7 +725,7 @@ select.field-input::-ms-expand {
 
 .search-bar:focus-within {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primarySoft);
+  box-shadow: none;
 }
 
 .unified {
@@ -1025,6 +1024,22 @@ select.field-input::-ms-expand {
 .search-overlay-wrapper {
   position: relative;
   width: 100%;
+}
+
+.search-overlay-wrapper.is-search-focused::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1190;
+
+  /* Full-width shadow on focus */
+  box-shadow:
+    0 0 0 3px var(--primarySoft),
+    0 25px 60px rgba(13, 128, 255, 0.12);
 }
 
 .overlay {
