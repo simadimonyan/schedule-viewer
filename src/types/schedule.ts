@@ -5,6 +5,8 @@ export interface Group {
   course: number
   level: string
   studyForm: string
+  /** Время последнего обновления расписания (epoch millis). Может быть null. */
+  updatedAt?: number | null
 }
 
 export interface GroupsSearchResponse {
@@ -24,6 +26,8 @@ export interface Teacher {
   id: number
   label: string
   department: string
+  /** Время последнего обновления расписания (epoch millis). Может быть null. */
+  updatedAt?: number | null
 }
 
 export interface TeachersSearchResponse {
@@ -48,6 +52,8 @@ export interface ScheduleItem {
 
 export interface ScheduleResponse {
   schedule: ScheduleItem[]
+  /** Опционально — backend может вернуть top-level время обновления. */
+  updatedAt?: number | null
 }
 
 // Конфигурация
@@ -85,5 +91,8 @@ export interface ScheduleWeek {
   startDate: string
   endDate: string
   days: ScheduleDay[]
+  /** Самая поздняя дата обновления среди объектов schedule (epoch millis).
+   *  null — backend не вернул updatedAt; UI скрывает badge. */
+  updatedAt?: number | null
 }
 

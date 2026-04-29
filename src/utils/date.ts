@@ -82,6 +82,50 @@ export function getWeekdayName(weekday: number): string {
   return weekdayNames[weekday - 1] || weekdayNames[0]!
 }
 
+/** Форматирует timestamp в человеко-читаемое относительное время на русском.
+ *  Примеры: «только что», «5 минут назад», «2 часа назад», «вчера», «2 дня назад»,
+ *  «12 апреля» (для давних дат). */
+export function formatRelativeTime(timestamp: number, now: Date = new Date()): string {
+  const diffMs = now.getTime() - timestamp
+  if (diffMs < 0) return 'только что' // backend timestamp в будущем — клок-skew
+
+  const sec = Math.floor(diffMs / 1000)
+  if (sec < 30) return 'только что'
+  if (sec < 60) return `${sec} сек. назад`
+
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min} ${pluralRu(min, ['минуту', 'минуты', 'минут'])} назад`
+
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr} ${pluralRu(hr, ['час', 'часа', 'часов'])} назад`
+
+  const days = Math.floor(hr / 24)
+  if (days === 1) return 'вчера'
+  if (days < 7) return `${days} ${pluralRu(days, ['день', 'дня', 'дней'])} назад`
+
+  // Старше недели — абсолютная дата
+  const d = new Date(timestamp)
+  const months = [
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+  ]
+  const day = d.getDate()
+  const month = months[d.getMonth()]
+  const year = d.getFullYear()
+  const currentYear = now.getFullYear()
+  return year === currentYear ? `${day} ${month}` : `${day} ${month} ${year}`
+}
+
+/** Русское склонение по числу: pluralRu(5, ['груша', 'груши', 'груш']) → 'груш' */
+function pluralRu(n: number, forms: [string, string, string]): string {
+  const abs = Math.abs(n) % 100
+  const n1 = abs % 10
+  if (abs > 10 && abs < 20) return forms[2]
+  if (n1 > 1 && n1 < 5) return forms[1]
+  if (n1 === 1) return forms[0]
+  return forms[2]
+}
+
 export function getDaysOfWeek(startDate: Date): Array<{ date: Date; weekday: number; dayWeek: string }> {
   const days: Array<{ date: Date; weekday: number; dayWeek: string }> = []
   const current = new Date(startDate)

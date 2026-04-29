@@ -77,3 +77,67 @@ export async function apiGet<T>(path: string, options: RequestOptions = {}): Pro
   return (await response.json()) as T
 }
 
+/* POST helper — для лёгких side-effect endpoints (heartbeat, лайки и т.п.).
+ * Возвращает либо JSON (если backend ответил json), либо текстовое тело —
+ * вызывающий обычно игнорирует возврат. */
+export async function apiPost<T = unknown>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T | string | null> {
+  const baseUrl = getApiBaseUrl()
+  const token = getApiToken()
+
+  const pathNorm = path.replace(/^\//, '')
+  const baseNorm = baseUrl.replace(/\/+$/, '')
+
+  let requestUrl: string
+  if (/^https?:\/\//i.test(baseNorm)) {
+    requestUrl = new URL(pathNorm, `${baseNorm}/`).toString()
+  } else {
+    requestUrl = baseNorm + '/' + pathNorm
+  }
+
+  if (options.query) {
+    const params = new URLSearchParams()
+    Object.entries(options.query).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.set(key, String(value))
+      }
+    })
+    const qs = params.toString()
+    if (qs) requestUrl += (requestUrl.includes('?') ? '&' : '?') + qs
+  }
+
+  const response = await fetch(requestUrl, {
+    method: 'POST',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  })
+
+  if (!response.ok) {
+    const err: ApiError = {
+      message: `Ошибка POST (${response.status})`,
+      status: response.status,
+    }
+    throw err
+  }
+
+  // Пытаемся распарсить JSON; если не получилось — возвращаем текст.
+  const contentType = response.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    try {
+      return (await response.json()) as T
+    } catch {
+      return null
+    }
+  }
+  try {
+    return await response.text()
+  } catch {
+    return null
+  }
+}

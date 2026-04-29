@@ -106,8 +106,9 @@ function onNextWeek() {
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
   min-height: 2.5rem;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-  background: #fff;
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .panel-range {
@@ -118,16 +119,18 @@ function onNextWeek() {
 
 .range-text {
   font-size: 0.8rem;
-  color: var(--text);
+  color: var(--ds-fg);
   font-weight: 500;
 }
 
 .parity-badge {
   font-size: 0.7rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
-  background: rgba(15, 23, 42, 0.06);
-  color: var(--text);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--r-full);
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
+  border: 1px solid var(--ds-accent-border);
+  font-weight: 600;
 }
 
 .panel-nav {
@@ -143,18 +146,20 @@ function onNextWeek() {
   width: 2rem;
   height: 2rem;
   padding: 0;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text);
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--ds-surface-sunk);
+  color: var(--ds-fg-soft);
   font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .btn-icon:hover {
-  background: rgba(15, 23, 42, 0.06);
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
+  border-color: var(--ds-accent-border);
 }
 
 .date-trigger {
@@ -163,17 +168,18 @@ function onNextWeek() {
   gap: 0.35rem;
   padding: 0.35rem 0.6rem;
   font-size: 0.78rem;
-  border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  background: var(--surface);
-  color: var(--text);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--ds-border-strong);
+  background: var(--ds-surface-sunk);
+  color: var(--ds-fg);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 
 .date-trigger:hover {
-  border-color: rgba(148, 163, 184, 0.4);
-  background: rgba(15, 23, 42, 0.02);
+  border-color: var(--ds-accent-border);
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
 }
 
 .date-trigger-icon {

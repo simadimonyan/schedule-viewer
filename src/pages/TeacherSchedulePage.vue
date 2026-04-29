@@ -1,21 +1,27 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSchedule } from '../hooks/useSchedule'
 import { formatDateFromISO } from '../utils/date'
-import WeekSwitcher from '../components/schedule/WeekSwitcher.vue'
+import type { Lesson } from '../types/schedule'
+import Breadcrumbs from '../components/layout/Breadcrumbs.vue'
+import ControlBar from '../components/schedule/ControlBar.vue'
 import ScheduleGrid from '../components/schedule/ScheduleGrid.vue'
 import ScheduleList from '../components/schedule/ScheduleList.vue'
+import LegendTab from '../components/schedule/LegendTab.vue'
+import LessonDrawer from '../components/schedule/LessonDrawer.vue'
 import Loader from '../components/common/Loader.vue'
 import ErrorMessage from '../components/common/ErrorMessage.vue'
 
 const route = useRoute()
 const teacherId = computed(() => String(route.params.teacherId || ''))
 
-const { loading, error, week, serverWeekLabel, weekStartDate, goToPrevWeek, goToNextWeek, goToWeekByDate } = useSchedule({
+const { loading, error, week, weekStartDate, goToPrevWeek, goToNextWeek, goToWeekByDate } = useSchedule({
   mode: 'teacher',
   id: teacherId.value,
 })
+
+const view = ref<'grid' | 'list'>('grid')
 
 const weekRangeLabel = computed(() => {
   if (!week.value) return ''
@@ -26,47 +32,94 @@ const displayedWeekLabel = computed(() => {
   if (!week.value) return ''
   return week.value.weekCount === 1 ? 'Нечётная' : 'Чётная'
 })
+
+const totalCount = computed(() => {
+  if (!week.value) return 0
+  return week.value.days.reduce((acc, d) => acc + d.lessons.length, 0)
+})
+
+const todayCount = computed(() => {
+  if (!week.value) return 0
+  const t = new Date()
+  const y = t.getFullYear()
+  const m = String(t.getMonth() + 1).padStart(2, '0')
+  const day = String(t.getDate()).padStart(2, '0')
+  const todayISO = `${y}-${m}-${day}`
+  return week.value.days.find((d) => d.date === todayISO)?.lessons.length || 0
+})
+
+function goToday() {
+  goToWeekByDate(new Date())
+}
+
+/* ── Drawer-state ── */
+const selectedLesson = ref<Lesson | null>(null)
+const selectedDayDate = ref<string>('')
+
+function openLesson(payload: { lesson: Lesson; dayDate: string }) {
+  selectedLesson.value = payload.lesson
+  selectedDayDate.value = payload.dayDate
+}
+
+function closeLesson() {
+  selectedLesson.value = null
+}
 </script>
 
 <template>
   <section class="page">
+    <Breadcrumbs :current="teacherId" />
+
     <Transition name="schedule-fade" mode="out-in">
       <div v-if="error" key="error" class="content content-center">
         <ErrorMessage :message="error" />
       </div>
+
       <div v-else-if="!week" key="loading" class="content schedule-loading">
         <div class="schedule-loading-state">
           <Loader />
         </div>
       </div>
+
       <div v-else-if="week" key="schedule" class="content" :class="{ 'schedule-updating': loading }">
-        <div class="desktop-only schedule-block">
-          <WeekSwitcher
-            :label="weekRangeLabel"
-            :week-label="displayedWeekLabel"
-            :week-start-date="weekStartDate"
-            @prev-week="goToPrevWeek"
-            @next-week="goToNextWeek"
-            @go-date="goToWeekByDate"
-          />
-          <ScheduleGrid :week="week" mode="teacher" />
-        </div>
-        <div class="mobile-only">
-          <div class="schedule-mobile-panel">
-            <WeekSwitcher
-              :label="weekRangeLabel"
-              :week-label="displayedWeekLabel"
-              :week-start-date="weekStartDate"
-              @prev-week="goToPrevWeek"
-              @next-week="goToNextWeek"
-              @go-date="goToWeekByDate"
-            />
+        <ControlBar
+          :label="weekRangeLabel"
+          :week-label="displayedWeekLabel"
+          :week-start-date="weekStartDate"
+          :total-count="totalCount"
+          :today-count="todayCount"
+          :view="view"
+          :updated-at="week.updatedAt ?? null"
+          @prev-week="goToPrevWeek"
+          @next-week="goToNextWeek"
+          @today="goToday"
+          @go-date="goToWeekByDate"
+          @change-view="(v) => (view = v)"
+        />
+
+        <div class="sched-block">
+          <div v-if="view === 'grid'" class="grid-wrap desktop-grid">
+            <ScheduleGrid :week="week" mode="teacher" @open-lesson="openLesson" />
           </div>
-          <ScheduleList :week="week" />
+          <div v-else class="list-wrap">
+            <ScheduleList :week="week" mode="teacher" @open-lesson="openLesson" />
+          </div>
+
+          <div v-if="view === 'grid'" class="list-wrap mobile-only">
+            <ScheduleList :week="week" mode="teacher" @open-lesson="openLesson" />
+          </div>
         </div>
       </div>
-      <!-- intentionally empty: while week is loading/unavailable we show only spinner -->
     </Transition>
+
+    <LegendTab />
+
+    <LessonDrawer
+      :lesson="selectedLesson"
+      :day-date="selectedDayDate"
+      mode="teacher"
+      @close="closeLesson"
+    />
   </section>
 </template>
 
@@ -74,11 +127,14 @@ const displayedWeekLabel = computed(() => {
 .page {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 12px;
+  padding: 14px 0 40px;
 }
 
 .content {
-  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .content-center {
@@ -89,23 +145,23 @@ const displayedWeekLabel = computed(() => {
   padding: 2rem;
 }
 
-.schedule-block {
-  display: flex;
-  flex-direction: column;
-  width: fit-content;
-  min-width: 100%;
-  border-radius: var(--radiusLg);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: var(--surface);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+.sched-block {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--r-xl);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
-.schedule-mobile-panel {
-  margin-bottom: 0.5rem;
+.grid-wrap {
+  overflow-x: auto;
 }
 
-.desktop-only {
+.list-wrap {
+  padding: 14px;
+}
+
+.desktop-grid {
   display: none;
 }
 
@@ -113,10 +169,13 @@ const displayedWeekLabel = computed(() => {
   display: block;
 }
 
-.placeholder {
-  margin-top: 0.75rem;
-  font-size: 0.9rem;
-  color: var(--text);
+@media (min-width: 1024px) {
+  .desktop-grid {
+    display: block;
+  }
+  .mobile-only {
+    display: none;
+  }
 }
 
 .schedule-loading {
@@ -150,32 +209,9 @@ const displayedWeekLabel = computed(() => {
   transform: translateY(-8px);
 }
 
-.schedule-updating .schedule-block {
+.schedule-updating .sched-block {
   opacity: 0.7;
   pointer-events: none;
   transition: opacity 0.2s ease;
 }
-
-@media (min-width: 768px) {
-  .toolbar {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .status {
-    text-align: right;
-  }
-}
-
-@media (min-width: 1024px) {
-  .desktop-only {
-    display: block;
-  }
-
-  .mobile-only {
-    display: none;
-  }
-}
 </style>
-
