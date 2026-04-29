@@ -60,7 +60,7 @@ export function formatDateDDMM(date: Date): string {
 
 /** Из ISO строки YYYY-MM-DD делает отображаемую дату DD.MM */
 export function formatDateFromISO(iso: string): string {
-  const [y, m, d] = iso.split('-')
+  const [, m, d] = iso.split('-')
   return d && m ? `${d}.${m}` : iso
 }
 
