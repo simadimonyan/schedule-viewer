@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSchedule } from '../hooks/useSchedule'
-import { formatDateFromISO } from '../utils/date'
+import { formatDateFromISO, formatDateISO } from '../utils/date'
 import type { Lesson } from '../types/schedule'
 import Breadcrumbs from '../components/layout/Breadcrumbs.vue'
 import ControlBar from '../components/schedule/ControlBar.vue'
@@ -21,7 +21,29 @@ const { loading, error, week, weekStartDate, goToPrevWeek, goToNextWeek, goToWee
   id: groupId.value,
 })
 
+const SCOPE_KEY = 'schedule_scope'
+
 const view = ref<'grid' | 'list'>('grid')
+const scope = ref<'week' | 'day'>(
+  localStorage.getItem(SCOPE_KEY) === 'day' ? 'day' : 'week'
+)
+const selectedDate = ref<Date>(new Date())
+
+// Keep selectedDate inside the loaded week when navigating weeks in day mode
+watch(() => week.value?.startDate, () => {
+  if (!week.value || scope.value !== 'day') return
+  const selISO = formatDateISO(selectedDate.value)
+  if (selISO < week.value.startDate || selISO > week.value.endDate) {
+    const [y, m, d] = week.value.startDate.split('-').map(Number)
+    selectedDate.value = new Date(y!, m! - 1, d!)
+  }
+})
+
+const filteredWeek = computed(() => {
+  if (!week.value || scope.value === 'week') return week.value
+  const selISO = formatDateISO(selectedDate.value)
+  return { ...week.value, days: week.value.days.filter(d => d.date === selISO) }
+})
 
 const weekRangeLabel = computed(() => {
   if (!week.value) return ''
@@ -49,7 +71,41 @@ const todayCount = computed(() => {
 })
 
 function goToday() {
+  selectedDate.value = new Date()
   goToWeekByDate(new Date())
+}
+
+function onChangeScope(newScope: 'week' | 'day') {
+  if (newScope === 'day' && week.value) {
+    const todayISO = formatDateISO(new Date())
+    if (todayISO >= week.value.startDate && todayISO <= week.value.endDate) {
+      selectedDate.value = new Date()
+    } else if (weekStartDate.value) {
+      selectedDate.value = new Date(weekStartDate.value)
+    }
+  }
+  scope.value = newScope
+  localStorage.setItem(SCOPE_KEY, newScope)
+}
+
+async function onPrevDay() {
+  const prev = new Date(selectedDate.value)
+  prev.setDate(prev.getDate() - 1)
+  selectedDate.value = prev
+  const prevISO = formatDateISO(prev)
+  if (!week.value || prevISO < week.value.startDate || prevISO > week.value.endDate) {
+    await goToWeekByDate(prev)
+  }
+}
+
+async function onNextDay() {
+  const next = new Date(selectedDate.value)
+  next.setDate(next.getDate() + 1)
+  selectedDate.value = next
+  const nextISO = formatDateISO(next)
+  if (!week.value || nextISO < week.value.startDate || nextISO > week.value.endDate) {
+    await goToWeekByDate(next)
+  }
 }
 
 /* ── Drawer-state: открываем подробности занятия ── */
@@ -89,25 +145,35 @@ function closeLesson() {
           :total-count="totalCount"
           :today-count="todayCount"
           :view="view"
+          :scope="scope"
+          :selected-date="selectedDate"
           :updated-at="week.updatedAt ?? null"
           @prev-week="goToPrevWeek"
           @next-week="goToNextWeek"
           @today="goToday"
           @go-date="goToWeekByDate"
           @change-view="(v) => (view = v)"
+          @change-scope="onChangeScope"
+          @prev-day="onPrevDay"
+          @next-day="onNextDay"
         />
 
         <div class="sched-block">
-          <div v-if="view === 'grid'" class="grid-wrap desktop-grid">
-            <ScheduleGrid :week="week" mode="group" @open-lesson="openLesson" />
-          </div>
+          <template v-if="scope === 'week'">
+            <div v-if="view === 'grid'" class="grid-wrap desktop-grid">
+              <ScheduleGrid :week="week" mode="group" @open-lesson="openLesson" />
+            </div>
+            <div v-else class="list-wrap">
+              <ScheduleList :week="week" mode="group" @open-lesson="openLesson" />
+            </div>
+            <!-- На мобильных всегда показываем list-вид -->
+            <div v-if="view === 'grid'" class="list-wrap mobile-only">
+              <ScheduleList :week="week" mode="group" @open-lesson="openLesson" />
+            </div>
+          </template>
+          <!-- Режим одного дня — всегда list -->
           <div v-else class="list-wrap">
-            <ScheduleList :week="week" mode="group" @open-lesson="openLesson" />
-          </div>
-
-          <!-- На мобильных всегда показываем list-вид -->
-          <div v-if="view === 'grid'" class="list-wrap mobile-only">
-            <ScheduleList :week="week" mode="group" @open-lesson="openLesson" />
+            <ScheduleList :week="filteredWeek ?? week" mode="group" @open-lesson="openLesson" />
           </div>
         </div>
       </div>
@@ -151,7 +217,24 @@ function closeLesson() {
   border: 1px solid var(--ds-border);
   border-radius: var(--r-xl);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow:
+    0 1px 3px rgba(15,23,42,0.05),
+    0 6px 18px rgba(15,23,42,0.07),
+    0 18px 44px rgba(15,23,42,0.08);
+}
+
+[data-theme="dark"] .sched-block {
+  border-width: 0.5px;
+  border-color: transparent;
+  background:
+    radial-gradient(ellipse 55% 40% at 15% 10%, rgba(96,165,250,0.07), transparent 65%) padding-box,
+    radial-gradient(ellipse 45% 35% at 85% 85%, rgba(167,139,250,0.06), transparent 60%) padding-box,
+    linear-gradient(var(--ds-surface), var(--ds-surface)) padding-box,
+    linear-gradient(120deg, #60A5FA 0%, #A78BFA 100%) border-box;
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.25),
+    0 8px 24px rgba(0,0,0,0.35),
+    0 22px 52px rgba(96,165,250,0.08);
 }
 
 .grid-wrap {

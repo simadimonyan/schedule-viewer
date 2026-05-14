@@ -27,22 +27,6 @@ export function getWeekRangeForDate(date: Date): { start: Date; end: Date } {
   return { start, end }
 }
 
-/** Номер ISO-недели в году (1–53) */
-function getISOWeekNumber(date: Date): number {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  const day = d.getDay() || 7
-  d.setDate(d.getDate() + 4 - day)
-  const yearStart = new Date(d.getFullYear(), 0, 1)
-  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-  return weekNo
-}
-
-/** Чётность недели для даты: 1 = нечётная, 2 = чётная (по номеру недели в году) */
-export function getWeekParity(date: Date): 1 | 2 {
-  const weekNo = getISOWeekNumber(date)
-  return (weekNo % 2 === 0 ? 2 : 1) as 1 | 2
-}
 
 /** Форматирует дату в ISO YYYY-MM-DD по локальной дате (без сдвига на -1 день в других часовых поясах). */
 export function formatDateISO(date: Date): string {

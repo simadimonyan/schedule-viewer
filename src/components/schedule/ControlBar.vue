@@ -17,11 +17,15 @@ const props = withDefaults(
     todayCount?: number
     /** Текущий вид: grid | list */
     view?: 'grid' | 'list'
+    /** Область просмотра: week | day */
+    scope?: 'week' | 'day'
+    /** Выбранный день (используется в режиме day) */
+    selectedDate?: Date | null
     /** Время последнего обновления расписания (epoch millis).
      *  null/undefined → badge скрыт. */
     updatedAt?: number | null
   }>(),
-  { view: 'grid', totalCount: 0, todayCount: 0, updatedAt: null }
+  { view: 'grid', scope: 'week', totalCount: 0, todayCount: 0, updatedAt: null }
 )
 
 const emit = defineEmits<{
@@ -30,6 +34,9 @@ const emit = defineEmits<{
   (e: 'today'): void
   (e: 'go-date', date: Date): void
   (e: 'change-view', view: 'grid' | 'list'): void
+  (e: 'change-scope', scope: 'week' | 'day'): void
+  (e: 'prev-day'): void
+  (e: 'next-day'): void
 }>()
 
 const calendarOpen = ref(false)
@@ -44,6 +51,15 @@ const displayDate = computed(() => {
   return formatDateFromISO(
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
   )
+})
+
+const selectedDayLabel = computed(() => {
+  const d = props.selectedDate
+  if (!d) return ''
+  const names = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  return `${names[d.getDay()]}, ${dd}.${mm}`
 })
 
 function onCalendarSelect(date: Date) {
@@ -81,12 +97,18 @@ const updatedAtTooltip = computed(() => {
 
 <template>
   <div class="cbar">
-    <!-- Week navigation -->
+    <!-- Строка 1: навигация по неделям / дням -->
     <div class="wk-nav">
-      <button class="wk-nav-btn" type="button" aria-label="Предыдущая неделя" @click="emit('prev-week')">
+      <button
+        class="wk-nav-btn"
+        type="button"
+        :aria-label="scope === 'day' ? 'Предыдущий день' : 'Предыдущая неделя'"
+        @click="scope === 'day' ? emit('prev-day') : emit('prev-week')"
+      >
         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <button
+        v-if="scope !== 'day'"
         class="wk-lbl-btn"
         type="button"
         :title="displayDate || 'Выбрать неделю'"
@@ -94,11 +116,23 @@ const updatedAtTooltip = computed(() => {
       >
         {{ label || displayDate || '—' }}
       </button>
-      <button class="wk-nav-btn" type="button" aria-label="Следующая неделя" @click="emit('next-week')">
+      <span v-else class="day-lbl">{{ selectedDayLabel }}</span>
+      <button
+        class="wk-nav-btn"
+        type="button"
+        :aria-label="scope === 'day' ? 'Следующий день' : 'Следующая неделя'"
+        @click="scope === 'day' ? emit('next-day') : emit('next-week')"
+      >
         <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
       <button class="wk-today-btn" type="button" @click="emit('today')">Сегодня</button>
-      <button class="wk-nav-btn" type="button" aria-label="Выбрать дату" @click="openCalendar" style="margin-left:2px">
+      <button
+        v-if="scope !== 'day'"
+        class="wk-nav-btn wk-cal-btn"
+        type="button"
+        aria-label="Выбрать дату"
+        @click="openCalendar"
+      >
         <svg viewBox="0 0 24 24">
           <rect x="3" y="4" width="18" height="18" rx="2"/>
           <line x1="3" y1="10" x2="21" y2="10"/>
@@ -108,8 +142,28 @@ const updatedAtTooltip = computed(() => {
       </button>
     </div>
 
-    <!-- Parity badge -->
-    <span v-if="weekLabel" class="wk-parity-badge">{{ weekLabel }}</span>
+    <!-- Строка 2: контекст — чётность слева, вид справа -->
+    <div class="cbar-ctx">
+      <span
+        v-if="weekLabel"
+        class="wk-parity-badge"
+        :class="weekLabel === 'Нечётная' ? 'parity--odd' : 'parity--even'"
+      >{{ weekLabel }}</span>
+      <div class="stoggle">
+        <button
+          class="seg-btn"
+          :class="{ active: scope !== 'day' }"
+          type="button"
+          @click="emit('change-scope', 'week')"
+        >Нед</button>
+        <button
+          class="seg-btn"
+          :class="{ active: scope === 'day' }"
+          type="button"
+          @click="emit('change-scope', 'day')"
+        >День</button>
+      </div>
+    </div>
 
     <!-- Spacer -->
     <div class="csep" />
@@ -186,7 +240,10 @@ const updatedAtTooltip = computed(() => {
   border: 1px solid var(--ds-border);
   border-radius: var(--r-lg);
   padding: 9px 14px;
-  box-shadow: var(--shadow-xs);
+  box-shadow:
+    0 1px 2px rgba(15,23,42,0.04),
+    0 4px 12px rgba(15,23,42,0.07),
+    0 10px 24px rgba(15,23,42,0.06);
 }
 
 .wk-nav {
@@ -229,7 +286,7 @@ const updatedAtTooltip = computed(() => {
 .wk-lbl-btn {
   font-family: var(--ds-font-display);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--ds-fg);
   padding: 4px 10px;
   border-radius: var(--r-sm);
@@ -279,11 +336,91 @@ const updatedAtTooltip = computed(() => {
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.wk-parity-badge.parity--even {
+  background: var(--lesson-intro-soft);
+  color: var(--lesson-intro);
+  border: 1px solid rgba(124, 58, 237, 0.28);
+}
+
+[data-theme="dark"] .cbar {
+  border-width: 0.5px;
+  border-color: transparent;
+  background:
+    radial-gradient(ellipse 70% 120% at 10% 50%, rgba(96,165,250,0.07), transparent 65%) padding-box,
+    radial-gradient(ellipse 60% 120% at 90% 50%, rgba(167,139,250,0.06), transparent 65%) padding-box,
+    linear-gradient(var(--ds-surface), var(--ds-surface)) padding-box,
+    linear-gradient(120deg, #60A5FA 0%, #A78BFA 100%) border-box;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.22),
+    0 4px 14px rgba(0,0,0,0.28),
+    0 12px 36px rgba(96,165,250,0.08);
+}
+
+[data-theme="dark"] .wk-parity-badge.parity--even {
+  border-color: rgba(167, 139, 250, 0.35);
+}
+
+.wk-parity-badge.parity--odd {
   background: var(--ds-accent-soft);
   color: var(--ds-accent);
   border: 1px solid var(--ds-accent-border);
+}
+
+.day-lbl {
+  font-family: var(--ds-font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ds-fg);
+  padding: 4px 8px;
   white-space: nowrap;
+}
+
+.stoggle {
+  display: flex;
+  gap: 2px;
+  border-radius: var(--r-full);
+  background: var(--ds-surface-sunk);
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.seg-btn {
+  height: 24px;
+  padding: 0 12px;
+  border-radius: var(--r-full);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ds-fg-soft);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.18s var(--ease-out, ease), color 0.18s, box-shadow 0.18s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.seg-btn.active {
+  background: var(--ds-accent);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(26, 79, 219, 0.35);
+}
+
+[data-theme="dark"] .seg-btn.active {
+  box-shadow: 0 1px 4px rgba(96, 165, 250, 0.40);
+}
+
+.seg-btn:not(.active):hover {
+  color: var(--ds-fg);
+}
+
+/* Строка 2: чётность + переключатель вида */
+.cbar-ctx {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .csep {
@@ -397,18 +534,27 @@ const updatedAtTooltip = computed(() => {
 
 @media (max-width: 768px) {
   .cbar {
-    padding: 8px 10px;
+    padding: 10px 12px;
     gap: 8px;
-    /* Центрируем оставшееся содержимое — переключатель формата убран,
-       статистики и парности нет; остаётся только навигация по неделе. */
+  }
+  /* Строка 1: навигация — центрирована */
+  .wk-nav {
+    width: 100%;
     justify-content: center;
   }
   .wk-lbl-btn {
     font-size: 12px;
     padding: 3px 7px;
   }
+  .wk-cal-btn {
+    display: none;
+  }
+  /* Строка 2: чётность слева, вид справа */
+  .cbar-ctx {
+    width: 100%;
+    justify-content: space-between;
+  }
   .csep,
-  .wk-parity-badge,
   .lesson-stat,
   .vtoggle {
     display: none;

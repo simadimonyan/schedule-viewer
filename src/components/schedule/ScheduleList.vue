@@ -118,6 +118,7 @@ const visibleDays = computed(() =>
       <div class="lv-day-hdr" :class="{ 'lv-day-today': day.date === todayISO }">
         <span v-if="day.date === todayISO" class="now-p" />
         <div class="lv-day-name">{{ day.dayWeek }}</div>
+        <div class="lv-day-count">{{ day.lessons.length }}</div>
         <div class="lv-day-date">{{ formatDateFromISO(day.date) }}</div>
       </div>
 
@@ -273,6 +274,24 @@ const visibleDays = computed(() =>
 }
 
 .lv-day-today .lv-day-name {
+  color: var(--ds-accent);
+}
+
+.lv-day-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ds-fg-soft);
+  background: var(--ds-surface-sunk);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--r-full);
+  padding: 1px 7px;
+  line-height: 1.6;
+  font-family: var(--ds-font-mono);
+}
+
+.lv-day-today .lv-day-count {
+  background: var(--ds-accent-soft);
+  border-color: var(--ds-accent-border);
   color: var(--ds-accent);
 }
 

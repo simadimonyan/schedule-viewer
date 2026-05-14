@@ -79,15 +79,43 @@ const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
   position: sticky;
   top: 0;
   z-index: 200;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--ds-border);
-  /* Симметрично с .app-footer: padding на внешнем элементе. */
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
   padding: 0 20px;
+  box-shadow: 0 4px 32px rgba(26, 79, 219, 0.07), 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* Градиентная линия снизу — как accent-полоса страницы */
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(26, 79, 219, 0.3) 20%,
+    rgba(139, 92, 246, 0.3) 80%,
+    transparent 100%
+  );
 }
 
 [data-theme="dark"] .header {
-  background: rgba(19, 26, 46, 0.95);
+  background: rgba(10, 14, 28, 0.85);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .header::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(99, 132, 255, 0.25) 20%,
+    rgba(167, 139, 250, 0.25) 80%,
+    transparent 100%
+  );
 }
 
 .header-inner {
@@ -114,12 +142,14 @@ const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
 }
 
 .brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: var(--shadow-brand);
+  box-shadow:
+    0 2px 8px rgba(26, 79, 219, 0.25),
+    0 0 0 1px rgba(26, 79, 219, 0.12);
 }
 
 .brand-logo {
@@ -138,16 +168,17 @@ const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
   font-family: var(--ds-font-display);
   font-size: 14px;
   font-weight: 700;
-  color: var(--ds-fg);
   letter-spacing: -0.01em;
   line-height: 1.2;
+  color: var(--ds-fg);
 }
 
 .brand-subtitle {
-  font-size: 10px;
+  font-size: 9.5px;
+  font-weight: 600;
   color: var(--ds-fg-faint);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 /* Абсолютная центровка owner-chip по центру header-inner.
@@ -179,13 +210,15 @@ const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
 }
 
 .tagline {
-  font-size: 12px;
-  color: var(--ds-fg-soft);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ds-fg-faint);
+  letter-spacing: 0.01em;
 }
 
 .icon-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--r-sm);
   display: flex;
   align-items: center;
@@ -193,13 +226,15 @@ const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
   color: var(--ds-fg-soft);
   transition: all var(--d-fast);
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
   background: none;
 }
 
 .icon-btn:hover {
   background: var(--ds-surface-soft);
+  border-color: var(--ds-border-strong);
   color: var(--ds-fg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .icon-btn svg {

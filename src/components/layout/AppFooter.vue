@@ -19,10 +19,11 @@ const currentYear = new Date().getFullYear()
         </div>
       </div>
 
-      <!-- Правая часть: соцсети + копирайт + версия -->
+      <!-- Правая часть: соцсети + копирайт -->
       <div class="ft-right">
-        <div class="ft-contacts">
-          <span class="ft-contacts-lbl">Связаться с нами</span>
+        <div class="ft-panel">
+          <span class="ft-contacts-lbl">Связаться</span>
+          <div class="ft-panel-sep" aria-hidden="true" />
           <div class="ft-socials">
             <a
               class="soc soc-vk"
@@ -61,6 +62,8 @@ const currentYear = new Date().getFullYear()
           <span class="ft-copy">© Моя Академия 2024–{{ currentYear }}</span>
           <span class="ft-dot" aria-hidden="true">·</span>
           <span class="ft-app">Электронное расписание</span>
+          <span class="ft-dot" aria-hidden="true">·</span>
+          <span class="ft-ie">ИП Симонян Димитри</span>
         </div>
       </div>
     </div>
@@ -69,9 +72,44 @@ const currentYear = new Date().getFullYear()
 
 <style scoped>
 .app-footer {
-  border-top: 1px solid var(--ds-border);
-  background: var(--ds-surface);
+  position: relative;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
   padding: 18px 20px;
+  box-shadow: 0 -4px 32px rgba(26, 79, 219, 0.06), 0 -1px 0 rgba(0, 0, 0, 0.03);
+}
+
+/* Градиентная линия сверху — зеркало header::after */
+.app-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(26, 79, 219, 0.3) 20%,
+    rgba(139, 92, 246, 0.3) 80%,
+    transparent 100%
+  );
+}
+
+[data-theme='dark'] .app-footer {
+  background: rgba(10, 14, 28, 0.85);
+  box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.35), 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] .app-footer::before {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(99, 132, 255, 0.25) 20%,
+    rgba(167, 139, 250, 0.25) 80%,
+    transparent 100%
+  );
 }
 
 .ft-inner {
@@ -121,8 +159,8 @@ const currentYear = new Date().getFullYear()
 }
 
 .ft-text-sub {
-  font-size: 11.5px;
-  color: var(--ds-fg-soft);
+  font-size: 11px;
+  color: var(--ds-fg-faint);
   line-height: 1.4;
 }
 
@@ -131,45 +169,65 @@ const currentYear = new Date().getFullYear()
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
 }
 
-.ft-contacts {
-  display: flex;
+/* Pill-контейнер объединяет лейбл + иконки в одну «таблетку» */
+.ft-panel {
+  display: inline-flex;
   align-items: center;
   gap: 10px;
+  padding: 6px 10px 6px 14px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--ds-border-strong);
+  background: var(--ds-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] .ft-panel {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 .ft-contacts-lbl {
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ds-fg-faint);
+  white-space: nowrap;
+}
+
+.ft-panel-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--ds-border-strong);
+  flex-shrink: 0;
+}
+
+[data-theme='dark'] .ft-panel-sep {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .ft-socials {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 
-/* Соц-иконки — squircle с brand-марками. Сами SVG-файлы (VK/TG/MAX)
- * содержат скруглённый квадрат + лого. Контейнер только обрабатывает
- * lift + brand-glow на hover. */
 .soc {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
   cursor: pointer;
   transition: transform 0.2s var(--ease-out, ease),
-    box-shadow 0.2s ease, filter 0.2s ease;
-  /* Базовая тень — мягкая, чтобы иконки «лежали» на surface */
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    box-shadow 0.2s ease, opacity 0.2s ease;
+  opacity: 0.85;
 }
 
 .soc img {
@@ -180,67 +238,57 @@ const currentYear = new Date().getFullYear()
 }
 
 .soc:hover {
-  transform: translateY(-2px) scale(1.05);
-  /* Brand-coloured glow на hover */
-  box-shadow: 0 4px 14px var(--soc-glow, rgba(15, 23, 42, 0.18));
+  transform: translateY(-2px) scale(1.08);
+  opacity: 1;
+  box-shadow: 0 4px 12px var(--soc-glow, rgba(15, 23, 42, 0.2));
 }
 
 .soc:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(0) scale(0.96);
   transition-duration: 80ms;
 }
 
-/* Каждая платформа задаёт свой brand-glow цвет через CSS-переменную */
-.soc-vk {
-  --soc-glow: rgba(0, 119, 255, 0.4);
-}
+.soc-vk  { --soc-glow: rgba(0, 119, 255, 0.35); }
+.soc-tg  { --soc-glow: rgba(34, 158, 217, 0.35); }
+.soc-max { --soc-glow: rgba(139, 92, 246, 0.35); }
 
-.soc-tg {
-  --soc-glow: rgba(34, 158, 217, 0.4);
-}
-
-.soc-max {
-  --soc-glow: rgba(139, 92, 246, 0.4);
-}
-
-/* Dark theme: тени мягче (на тёмной поверхности контраст и так высокий) */
 [data-theme='dark'] .soc {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  opacity: 0.75;
 }
 
 [data-theme='dark'] .soc:hover {
-  /* В dark mode сохраняем brand-glow */
-  box-shadow: 0 4px 14px var(--soc-glow, rgba(0, 0, 0, 0.5));
+  opacity: 1;
+  box-shadow: 0 4px 14px var(--soc-glow, rgba(0, 0, 0, 0.4));
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .soc {
-    transition: box-shadow 0.15s ease;
-  }
-  .soc:hover {
-    transform: none;
-  }
+  .soc { transition: opacity 0.15s ease; }
+  .soc:hover { transform: none; }
 }
 
 .ft-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
+  gap: 6px;
+  font-size: 10.5px;
   color: var(--ds-fg-faint);
+  letter-spacing: 0.01em;
 }
 
 .ft-copy {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .ft-dot {
-  color: var(--ds-fg-faint);
-  opacity: 0.6;
+  opacity: 0.4;
 }
 
 .ft-app {
-  color: var(--ds-fg-soft);
+  color: var(--ds-fg-faint);
+}
+
+.ft-ie {
+  color: var(--ds-fg-faint);
 }
 
 /* ─── Desktop: расширяем padding по краям, чтобы блок не упирался в края ─── */
@@ -250,44 +298,70 @@ const currentYear = new Date().getFullYear()
   }
 }
 
-/* ─── Mobile: вертикальная раскладка с центровкой ─── */
+/* ─── Mobile: вертикальная центровка ─── */
 @media (max-width: 768px) {
   .ft-inner {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
     text-align: center;
   }
 
   .ft-support {
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .ft-logo-img {
+    height: 58px;
   }
 
   .ft-divider {
-    width: 36px;
-    height: 1px;
+    display: none;
   }
 
   .ft-text {
     align-items: center;
     text-align: center;
+    gap: 1px;
   }
 
   .ft-text-title {
-    font-size: 12.5px;
+    font-size: 11px;
+  }
+
+  .ft-text-sub {
+    font-size: 10px;
   }
 
   .ft-right {
     align-items: center;
-    gap: 10px;
-    padding-top: 14px;
+    gap: 8px;
+    padding-top: 12px;
     border-top: 1px solid var(--ds-border);
   }
 
-  .ft-contacts {
+  .ft-panel {
+    flex-direction: row;
+    padding: 5px 8px 5px 12px;
+    border-radius: var(--r-full);
+  }
+
+  .ft-panel-sep {
+    width: 1px;
+    height: 14px;
+  }
+
+  .ft-meta {
     flex-direction: column;
-    gap: 8px;
+    align-items: center;
+    gap: 2px;
+    font-size: 10.5px;
+  }
+
+  /* На мобиле прячем разделители — переносы сами дают структуру */
+  .ft-meta .ft-dot {
+    display: none;
   }
 
   .ft-meta {

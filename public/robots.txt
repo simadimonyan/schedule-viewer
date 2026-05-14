@@ -1,0 +1,61 @@
+# Schedule Viewer - SEO & GEO Optimized robots.txt
+# Языки: RU, UK, KZ - основная целевая аудитория
+
+# Основное правило для всех ботов
+User-agent: *
+Allow: /
+Allow: *.js
+Allow: *.css
+Allow: *.json
+Allow: /api/schedule
+Allow: /api/presence
+Allow: /api/config
+
+# Запрещаем индексацию вспомогательных ресурсов
+Disallow: /*.json$
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*page=
+Disallow: /node_modules/
+Disallow: /src/
+Disallow: /.git/
+Disallow: /dist/
+
+# Запрещаем доступ к временным файлам
+Disallow: /*\.map$
+Disallow: /*\.tar
+Disallow: /*\.zip
+
+# Кэширование и производительность
+Disallow: /api/cache
+
+# Правила для Google (优приоритет индексации)
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+Request-rate: 30/1m
+
+# Правила для Yandex (приоритет для региона СНГ)
+User-agent: Yandex
+Allow: /
+Crawl-delay: 1
+Request-rate: 50/1m
+Host: https://app.myimsit.ru
+
+# Правила для Bing
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
+
+# Правила для других ботов
+User-agent: *
+Crawl-delay: 2
+Request-rate: 20/1m
+
+# Sitemap (создайте sitemap.xml для полной оптимизации)
+Sitemap: https://app.myimsit.ru/sitemap.xml
+
+# GEO-специфичные указания для региональной оптимизации
+# Приоритетные регионы: Россия, Украина, Казахстан
+# Google Search Console: установите целевую аудиторию в РФ/UA/KZ
+# Yandex Webmaster: укажите языки контента (ru, uk)

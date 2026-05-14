@@ -5,7 +5,7 @@ import OnlineCard from '../components/home/OnlineCard.vue'
 import TopList from '../components/home/TopList.vue'
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { getWeekParity } from '../utils/date'
+import { getCurrentWeekCount } from '../api/schedule'
 import { EVENTS, trackGoal } from '../utils/analytics'
 
 type Mode = 'group' | 'teacher'
@@ -21,9 +21,7 @@ const recent = ref<Array<{ type: Mode; id: string }>>([])
  * вернулся в тот же режим. */
 const searchMode = ref<Mode>('group')
 
-/* Чётность текущей недели — 1 (нечётная) / 2 (чётная).
- * getWeekParity возвращает 1 для нечётных недель года, 2 для чётных. */
-const currentWeekParity = computed(() => getWeekParity(new Date()))
+const currentWeekParity = ref<1 | 2 | null>(null)
 const parityLabel = computed(() =>
   currentWeekParity.value === 1 ? 'Нечётная неделя' : 'Чётная неделя',
 )
@@ -60,22 +58,27 @@ const rainIcons = computed<RainIcon[]>(() => {
   const count = 18
   const items: RainIcon[] = []
   for (let i = 0; i < count; i++) {
+    // Нормализованная «глубина» 0–1: 0 = ближний план, 1 = дальний
+    const depth = i / (count - 1)
+    const size = rand(32, 64) * (1 - depth * 0.4)   // ближние крупнее
+    const duration = rand(10, 18) + depth * 16       // дальние медленнее
+    const opacity = rand(0.22, 0.37) * (1 - depth * 0.55) // дальние прозрачнее
     items.push({
       id: i,
       type: RAIN_TYPES[i % RAIN_TYPES.length]!,
       left: rand(2, 96),
-      size: rand(22, 44),
-      duration: rand(14, 28),
+      size,
+      duration,
       delay: -rand(0, 25),
       rotation: rand(-20, 20),
       drift: rand(-20, 20),
-      opacity: rand(0.05, 0.13),
+      opacity,
     })
   }
   return items
 })
 
-onMounted(() => {
+onMounted(async () => {
   const raw = localStorage.getItem(RECENT_KEY)
   if (raw) {
     try {
@@ -87,6 +90,11 @@ onMounted(() => {
   if (savedMode === 'teacher' || savedMode === 'group') {
     searchMode.value = savedMode
   }
+
+  try {
+    const config = await getCurrentWeekCount()
+    currentWeekParity.value = config.weekCount as 1 | 2
+  } catch {}
 })
 
 /* Сохраняем выбранный режим (группа/преподаватель) в localStorage,
@@ -135,7 +143,7 @@ function openRecent(r: { type: Mode; id: string }) {
             left: `${icon.left}%`,
             width: `${icon.size}px`,
             height: `${icon.size}px`,
-            opacity: icon.opacity,
+            '--rain-opacity': icon.opacity,
             '--rain-duration': `${icon.duration}s`,
             '--rain-delay': `${icon.delay}s`,
             '--rain-rot': `${icon.rotation}deg`,
@@ -282,18 +290,13 @@ function openRecent(r: { type: Mode; id: string }) {
   /* ─── Hero: ещё плотнее, чтобы освободить вертикальное пространство
      для top-карусели прямо под search-баром. */
   .home-title {
-    font-size: 1.4rem;
-    line-height: 1.15;
-    margin-bottom: 6px;
-    letter-spacing: -0.025em;
+    font-size: 1.85rem;
+    line-height: 1.12;
+    margin-bottom: 8px;
+    letter-spacing: -0.03em;
   }
 
-  /* На mobile убираем принудительный line-break после "расписание" —
-     браузер сам перенесёт слова там, где нужно. */
-  .home-title :deep(br),
-  .home-title br {
-    display: none;
-  }
+  /* На mobile оставляем br — явно переносим после "расписание" */
 
   .home-sub {
     font-size: 13px;
@@ -482,10 +485,9 @@ function openRecent(r: { type: Mode; id: string }) {
   color: var(--ds-fg-faint);
   fill: none;
   stroke: currentColor;
+  opacity: calc(var(--rain-opacity, 0.2) * var(--rain-opacity-scale, 1));
   animation: rain-fall var(--rain-duration, 18s) linear infinite;
   animation-delay: var(--rain-delay, 0s);
-  /* Базовый transform — стартовый поворот, дальше анимация добавляет
-     translateY/translateX/rotate. */
   will-change: transform;
 }
 
@@ -496,7 +498,7 @@ function openRecent(r: { type: Mode; id: string }) {
 }
 
 [data-theme='dark'] .rain-drop {
-  color: var(--ds-fg-faint);
+  --rain-opacity-scale: 0.5;
 }
 
 @keyframes rain-fall {
@@ -524,10 +526,16 @@ function openRecent(r: { type: Mode; id: string }) {
   }
 }
 
-/* На совсем узких экранах сокращаем плотность — каждая третья
-   иконка скрыта (через nth-child) */
+/* На мобиле скрываем каждую вторую иконку */
+@media (max-width: 768px) {
+  .rain-drop:nth-child(2n) {
+    display: none;
+  }
+}
+
+/* На совсем узких — ещё реже */
 @media (max-width: 380px) {
-  .rain-drop:nth-child(3n) {
+  .rain-drop:nth-child(3n+1) {
     display: none;
   }
 }

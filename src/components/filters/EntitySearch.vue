@@ -135,9 +135,10 @@ const loadCourses = async () => {
     const sorted = [...res.courses].sort((a, b) => a - b)
     courses.value = sorted
 
-    // не перезаписываем выбранный курс, если он уже восстановлен
-    if (!selectedCourse.value) {
-      selectedCourse.value = sorted[0] ?? null
+    // не перезаписываем выбранный курс, если уже восстановлен из localStorage
+    // (в т.ч. null = «Все курсы»)
+    if (selectedCourse.value === null && getSimple<number | null>('selected_course') === null) {
+      // оставляем null — пользователь выбрал «Все курсы» или первый визит
     }
 
     trackGoal(
@@ -179,35 +180,31 @@ const loadLevels = async () => {
 }
 
 const loadGroups = async () => {
-  if (!selectedCourse.value) {
-    console.log('loadGroups: selectedCourse is null, skipping')
-    return
-  }
-
   loading.value = true
   error.value = null
   try {
-    let fromCache = false
-    const res = await searchGroups(
-      selectedCourse.value,
-      selectedLevel.value || undefined,
-      { onCacheHit: () => (fromCache = true) },
-    )
-    console.log(
-      'loadGroups: response groups count:',
-      res.groups.length,
-      'fromCache:',
-      fromCache,
-    )
-    groups.value = res.groups
-    trackGoal(
-      fromCache ? EVENTS.CACHED_GROUPS_LIST : EVENTS.FETCH_GROUPS_LIST,
-      {
-        course: selectedCourse.value,
-        level: selectedLevel.value || 'all',
-        count: res.groups.length,
-      },
-    )
+    if (selectedCourse.value === null) {
+      // Все курсы — грузим параллельно и объединяем
+      const results = await Promise.all(
+        courses.value.map((c) =>
+          searchGroups(c, undefined, {}).catch(() => ({ groups: [] as Group[] })),
+        ),
+      )
+      groups.value = results.flatMap((r) => r.groups)
+      trackGoal(EVENTS.FETCH_GROUPS_LIST, { course: 'all', level: 'all', count: groups.value.length })
+    } else {
+      let fromCache = false
+      const res = await searchGroups(
+        selectedCourse.value,
+        selectedLevel.value || undefined,
+        { onCacheHit: () => (fromCache = true) },
+      )
+      groups.value = res.groups
+      trackGoal(
+        fromCache ? EVENTS.CACHED_GROUPS_LIST : EVENTS.FETCH_GROUPS_LIST,
+        { course: selectedCourse.value, level: selectedLevel.value || 'all', count: res.groups.length },
+      )
+    }
   } catch (e) {
     console.error('loadGroups: API error:', e)
     error.value = (e as { message?: string }).message || 'Не удалось загрузить группы'
@@ -279,10 +276,11 @@ onMounted(async () => {
   try {
     // Восстанавливаем пользовательские preferences (не TTL-кеш — это
     // именно сохранённый выбор курса/уровня).
-    const savedCourse = getSimple<number>('selected_course')
+    const savedCourse = getSimple<number | null>('selected_course')
     const savedLevel = getSimple<string>('selected_level')
 
-    if (savedCourse) selectedCourse.value = savedCourse
+    // null сохраняется явно — это «Все курсы». Если ключа нет вообще — тоже null.
+    if (savedCourse !== undefined) selectedCourse.value = savedCourse ?? null
     if (savedLevel !== null) selectedLevel.value = savedLevel
 
     // Все четыре loaders проходят через API-кеш (см. src/api/cache.ts):
@@ -383,13 +381,14 @@ function closeFiltersModal() {
  * — selectedStudyForm: '' (= «Все»)
  * Модалка остаётся открытой, чтобы пользователь видел эффект сброса. */
 function resetFilters() {
-  selectedCourse.value = courses.value[0] ?? null
+  selectedCourse.value = null
   selectedLevel.value = ''
   selectedStudyForm.value = ''
 }
 
 const activeFiltersCount = computed(() => {
   let n = 0
+  // null = все курсы = нет фильтра
   if (selectedCourse.value !== null) n++
   if (selectedLevel.value) n++
   if (selectedStudyForm.value) n++
@@ -721,6 +720,14 @@ onMounted(() => {
               <div class="filt-lbl">Курс</div>
               <div class="filt-chips">
                 <button
+                  type="button"
+                  class="filt-chip"
+                  :class="{ active: selectedCourse === null }"
+                  @click="selectedCourse = null"
+                >
+                  Все
+                </button>
+                <button
                   v-for="c in courses"
                   :key="c"
                   type="button"
@@ -733,7 +740,7 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="filt-section">
+            <div v-if="selectedCourse !== null" class="filt-section">
               <div class="filt-lbl">Уровень образования</div>
               <div class="filt-chips">
                 <button
@@ -1229,7 +1236,8 @@ onMounted(() => {
   height: 18px;
 }
 
-.item-avatar--group { color: var(--ds-accent); background: var(--ds-accent-soft); border-color: var(--ds-accent-border); }
+.item-avatar--group,
+.item-avatar--teacher { color: var(--ds-accent); background: var(--ds-accent-soft); border-color: var(--ds-accent-border); }
 
 .item:hover .item-avatar {
   background: var(--ds-accent-soft);

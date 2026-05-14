@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import OnlineCard from './OnlineCard.vue'
 import TopList from './TopList.vue'
-import { getWeekParity } from '../../utils/date'
+import { getCurrentWeekCount } from '../../api/schedule'
 
 withDefaults(
   defineProps<{
@@ -11,11 +11,17 @@ withDefaults(
   { mode: 'group' },
 )
 
-/* Чётность текущей недели — десктоп показывает чип рядом с online-pill */
-const currentWeekParity = computed(() => getWeekParity(new Date()))
+const currentWeekParity = ref<1 | 2 | null>(null)
 const parityLabel = computed(() =>
   currentWeekParity.value === 1 ? 'Нечётная неделя' : 'Чётная неделя',
 )
+
+onMounted(async () => {
+  try {
+    const config = await getCurrentWeekCount()
+    currentWeekParity.value = config.weekCount as 1 | 2
+  } catch {}
+})
 </script>
 
 <template>

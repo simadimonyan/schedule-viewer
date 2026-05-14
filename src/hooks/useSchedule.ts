@@ -6,7 +6,6 @@ import type { ApiError } from '../api/client'
 import {
   getCurrentWeekRange,
   getWeekRangeForDate,
-  getWeekParity,
   formatDateISO,
   formatDateDDMM,
   parseTimePeriod,
@@ -133,17 +132,26 @@ export function useSchedule(options: UseScheduleOptions) {
         : getCurrentWeekRange()
       weekStartDate.value = new Date(weekRange.start)
 
-      let weekCount = weekCountOverride ?? selectedWeekCount.value
-      if (weekCount === null) {
-        // getCurrentWeekCount проходит через api-кеш (TTL 1 час),
-        // поэтому повторные обращения за чётностью текущей недели
-        // не уйдут в сеть.
-        const config = await getCurrentWeekCount()
-        weekCount = config.weekCount
-        serverWeekCount.value = config.weekCount
-      }
-      if (weekStartOverride !== undefined) {
-        weekCount = getWeekParity(weekRange.start)
+      // Чётность всегда берём из API (кешируется 1 час).
+      // Для текущей недели — напрямую. Для любой другой — считаем
+      // смещение от текущей и чередуем.
+      const config = await getCurrentWeekCount()
+      serverWeekCount.value = config.weekCount
+
+      let weekCount: number
+      if (weekCountOverride !== undefined) {
+        weekCount = weekCountOverride
+      } else if (weekStartOverride !== undefined) {
+        const currentWeekStart = getCurrentWeekRange().start
+        const msPerWeek = 7 * 24 * 60 * 60 * 1000
+        const weekDiff = Math.round(
+          (weekRange.start.getTime() - currentWeekStart.getTime()) / msPerWeek,
+        )
+        weekCount = weekDiff % 2 === 0
+          ? config.weekCount
+          : config.weekCount === 1 ? 2 : 1
+      } else {
+        weekCount = selectedWeekCount.value ?? config.weekCount
       }
       selectedWeekCount.value = weekCount
 
@@ -252,19 +260,19 @@ export function useSchedule(options: UseScheduleOptions) {
     const start = weekStartDate.value ?? getCurrentWeekRange().start
     const prev = new Date(start)
     prev.setDate(prev.getDate() - 7)
-    await load(selectedWeekCount.value ?? undefined, prev)
+    await load(undefined, prev)
   }
 
   const goToNextWeek = async () => {
     const start = weekStartDate.value ?? getCurrentWeekRange().start
     const next = new Date(start)
     next.setDate(next.getDate() + 7)
-    await load(selectedWeekCount.value ?? undefined, next)
+    await load(undefined, next)
   }
 
   const goToWeekByDate = async (date: Date) => {
     const { start } = getWeekRangeForDate(date)
-    await load(selectedWeekCount.value ?? undefined, start)
+    await load(undefined, start)
   }
 
   onMounted(() => {
