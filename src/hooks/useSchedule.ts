@@ -31,6 +31,40 @@ function transformScheduleItems(items: ScheduleItem[]): Lesson[] {
   })
 }
 
+/** "08:00" -> 480. Мусор и пустая строка дают NaN — сравнение их отправит в конец. */
+function timeToMinutes(hhmm: string): number {
+  const [h, m] = (hhmm || '').split(':')
+  const hours = Number(h)
+  const minutes = Number(m)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return Number.NaN
+  return hours * 60 + minutes
+}
+
+/**
+ * Порядок пар внутри дня backend не гарантирует: он отдаёт строки в порядке
+ * вставки, и пара, добавленная в кабинете позже, приезжает последней, даже если
+ * она первая по времени (в проде так лежат, например, 26-ДЗ-01 и 26-СПО-ТиГ-02).
+ * Список показывал их в этом же порядке — пары «менялись местами».
+ * Сортируем сами: время начала → номер пары → id, чтобы порядок был
+ * детерминированным и при равном времени.
+ */
+function compareLessons(a: Lesson, b: Lesson): number {
+  const aStart = timeToMinutes(a.startTime)
+  const bStart = timeToMinutes(b.startTime)
+  const aOk = Number.isFinite(aStart)
+  const bOk = Number.isFinite(bStart)
+  if (aOk && bOk && aStart !== bStart) return aStart - bStart
+  if (aOk !== bOk) return aOk ? -1 : 1
+
+  const aCount = Number(a.lessonCount)
+  const bCount = Number(b.lessonCount)
+  if (Number.isFinite(aCount) && Number.isFinite(bCount) && aCount !== bCount) {
+    return aCount - bCount
+  }
+
+  return (a.id ?? 0) - (b.id ?? 0)
+}
+
 function groupLessonsByDay(lessons: Lesson[], weekStart: Date): ScheduleDay[] {
   const days = getDaysOfWeek(weekStart)
   const lessonsByDay = new Map<string, Lesson[]>()
@@ -42,6 +76,8 @@ function groupLessonsByDay(lessons: Lesson[], weekStart: Date): ScheduleDay[] {
     }
     lessonsByDay.get(dayKey)!.push(lesson)
   })
+
+  lessonsByDay.forEach((dayLessons) => dayLessons.sort(compareLessons))
 
   return days.map((day) => ({
     date: formatDateISO(day.date),

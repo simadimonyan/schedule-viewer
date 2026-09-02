@@ -66,7 +66,15 @@ const allTimeSlots = computed(() => {
       slots.add(lesson.timePeriod)
     })
   })
-  return Array.from(slots).sort()
+  /* Сортируем по времени начала, а не как строки: строковый порядок совпадает
+   * с временным только пока час двузначный ("08.00"), и один слот вида "8.00"
+   * из выгрузки уехал бы в конец таблицы, перемешав пары. */
+  return Array.from(slots).sort((a, b) => {
+    const aStart = toMinutes(splitTimeSlot(a).start)
+    const bStart = toMinutes(splitTimeSlot(b).start)
+    if (aStart !== bStart) return aStart - bStart
+    return a.localeCompare(b)
+  })
 })
 
 function splitTimeSlot(timeSlot: string): { start: string; end: string } {
