@@ -282,8 +282,9 @@ html[data-tg-fullscreen] .header {
 }
 html[data-tg-fullscreen] .header-inner {
   height: var(--tg-content-top, 56px);
-  /* кнопки Telegram: «Закрыть» ≈ 103px слева, ⌄ ⋮ ≈ 79px справа (Android, 360px) */
-  padding-inline: 104px 80px;
+  /* кнопки Telegram: «Закрыть» ≈ 103px слева, ⌄ ⋮ ≈ 79px справа (Android, 360px).
+     Поля равные — по большей кнопке: надпись стоит ровно по центру экрана. */
+  padding-inline: 104px;
   justify-content: center;
 }
 html[data-tg-fullscreen] .tagline,
