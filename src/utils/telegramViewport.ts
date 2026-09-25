@@ -7,9 +7,11 @@
  *
  * Высоту перекрытия знает только JS SDK Telegram (safeAreaInset — системная
  * зона, contentSafeAreaInset — кнопки Telegram), поэтому SDK подгружается
- * только внутри Telegram, а сумма отступа сверху кладётся в CSS-переменную
- * --tg-top-inset, по которой сдвигается шапка. Вне Telegram переменной нет,
- * и везде действует запасное значение 0px. */
+ * только внутри Telegram, а отступы кладутся в CSS-переменные: --tg-safe-top
+ * (статус-бар), --tg-content-top (строка кнопок Telegram), их сумма
+ * --tg-top-inset. В полноэкранном режиме на <html> ставится data-tg-fullscreen,
+ * и шапка перестраивается в строку кнопок Telegram (AppHeader.vue). Вне
+ * Telegram переменных нет, и везде действует запасное значение 0px. */
 
 const SDK_URL = 'https://telegram.org/js/telegram-web-app.js'
 
@@ -20,6 +22,7 @@ type TelegramWebApp = {
   onEvent?: (event: string, cb: () => void) => void
   safeAreaInset?: Inset
   contentSafeAreaInset?: Inset
+  isFullscreen?: boolean
 }
 
 type TelegramWindow = Window & { Telegram?: { WebApp?: TelegramWebApp } }
@@ -36,11 +39,17 @@ function launchedInTelegram(): boolean {
 }
 
 function applyInsets(app: TelegramWebApp) {
-  const top = (app.safeAreaInset?.top ?? 0) + (app.contentSafeAreaInset?.top ?? 0)
+  const safeTop = Math.max(0, app.safeAreaInset?.top ?? 0)
+  const contentTop = Math.max(0, app.contentSafeAreaInset?.top ?? 0)
   const bottom = (app.safeAreaInset?.bottom ?? 0) + (app.contentSafeAreaInset?.bottom ?? 0)
-  const root = document.documentElement.style
-  root.setProperty('--tg-top-inset', `${Math.max(0, top)}px`)
-  root.setProperty('--tg-bottom-inset', `${Math.max(0, bottom)}px`)
+  const html = document.documentElement
+  html.style.setProperty('--tg-safe-top', `${safeTop}px`)
+  html.style.setProperty('--tg-content-top', `${contentTop}px`)
+  html.style.setProperty('--tg-top-inset', `${safeTop + contentTop}px`)
+  html.style.setProperty('--tg-bottom-inset', `${Math.max(0, bottom)}px`)
+  // Старые клиенты не знают isFullscreen — тогда полноэкранность видна по строке кнопок.
+  const fullscreen = app.isFullscreen ?? contentTop > 0
+  html.toggleAttribute('data-tg-fullscreen', fullscreen && contentTop > 0)
 }
 
 function attach(app: TelegramWebApp) {

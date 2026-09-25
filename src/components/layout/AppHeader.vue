@@ -269,6 +269,42 @@ const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
   }
 }
 
+/* Полноэкранный Telegram (из профиля бота): сверху статус-бар, под ним строка
+   кнопок Telegram — «Закрыть» слева, ⌄ ⋮ справа, середина свободна. Шапка не
+   ставится под эту строку, а занимает её: бренд компактно по центру, как
+   заголовок нативного приложения. Переключатель темы в строке не помещается —
+   углы заняты кнопками Telegram. Отступы — utils/telegramViewport.ts. */
+html[data-tg-fullscreen] .header {
+  padding-top: var(--tg-safe-top, 0px);
+}
+html[data-tg-fullscreen] .header-inner {
+  height: var(--tg-content-top, 56px);
+  justify-content: center;
+}
+html[data-tg-fullscreen] .header-right,
+html[data-tg-fullscreen] .brand-subtitle,
+html[data-tg-fullscreen] .owner-chip {
+  display: none;
+}
+html[data-tg-fullscreen] .brand {
+  gap: 8px;
+  max-width: calc(100% - 200px); /* не залезать под кнопки Telegram по краям */
+}
+html[data-tg-fullscreen] .brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}
+html[data-tg-fullscreen] .brand-text {
+  min-width: 0;
+}
+html[data-tg-fullscreen] .brand-title {
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @media (max-width: 540px) {
   /* Совсем мало места — прячем chip, чтобы не наезжал на бренд */
   .owner-chip {
