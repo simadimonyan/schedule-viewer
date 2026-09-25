@@ -271,9 +271,11 @@ const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
 
 /* Полноэкранный Telegram (из профиля бота): сверху статус-бар, под ним строка
    кнопок Telegram — «Закрыть» слева, ⌄ ⋮ справа, середина свободна. Шапка не
-   ставится под эту строку, а занимает её: бренд и переключатель темы одной
-   группой по центру, как заголовок нативного приложения. Поля по бокам держат
-   группу между кнопками Telegram. Отступы — utils/telegramViewport.ts. */
+   ставится под эту строку, а занимает её: бренд по центру, как заголовок
+   нативного приложения; поля по бокам держат его между кнопками Telegram.
+   Переключатель темы в строку не помещается — он висит круглой кнопкой справа
+   под кнопками Telegram и едет вместе с липкой шапкой. Отступы —
+   utils/telegramViewport.ts. */
 html[data-tg-fullscreen] .header {
   padding-top: var(--tg-safe-top, 0px);
   padding-inline: 0; /* поля держит .header-inner — по кнопкам Telegram */
@@ -283,7 +285,6 @@ html[data-tg-fullscreen] .header-inner {
   /* кнопки Telegram: «Закрыть» ≈ 103px слева, ⌄ ⋮ ≈ 79px справа (Android, 360px) */
   padding-inline: 104px 80px;
   justify-content: center;
-  gap: 2px;
 }
 html[data-tg-fullscreen] .tagline,
 html[data-tg-fullscreen] .brand-subtitle,
@@ -312,12 +313,28 @@ html[data-tg-fullscreen] .brand-title {
   text-overflow: ellipsis;
 }
 html[data-tg-fullscreen] .header-right {
-  flex-shrink: 0;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 8px; /* по правому краю кнопки ⌄ ⋮ Telegram */
 }
 html[data-tg-fullscreen] .icon-btn {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-full, 999px);
+  color: var(--ds-fg);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-color: var(--ds-border-strong);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
+}
+html[data-theme="dark"][data-tg-fullscreen] .icon-btn {
+  background: rgba(22, 28, 48, 0.85);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+html[data-tg-fullscreen] .icon-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 @media (max-width: 540px) {
