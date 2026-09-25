@@ -1,3 +1,5 @@
+// Журнал для обращений в поддержку — первым, чтобы поймать и ошибки импорта остальных модулей.
+import { recordRouteChange } from './utils/clientLogs'
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import './style.css'
@@ -27,6 +29,8 @@ const router = createRouter({
  * до того, как Vue смонтировался — здесь мы трекаем только последующие
  * клиентские переходы. */
 let isFirstNav = true
+router.afterEach((to, from) => recordRouteChange(to.fullPath, from.matched.length ? from.fullPath : ''))
+
 router.afterEach((to) => {
   // Стартовая навигация — index.html уже сделал pageView, дублировать
   // не нужно. Зато goto-event для корректного входа в воронку отправляем.

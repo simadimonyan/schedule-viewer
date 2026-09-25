@@ -2,6 +2,8 @@
 import VkIcon from '@/assets/VK.svg'
 import TgIcon from '@/assets/TG.svg'
 import MaxIcon from '@/assets/MAX.svg'
+import ReportProblemDialog from '../support/ReportProblemDialog.vue'
+import { openReport } from '../support/useReportForm'
 
 const currentYear = new Date().getFullYear()
 </script>
@@ -21,6 +23,13 @@ const currentYear = new Date().getFullYear()
 
       <!-- Правая часть: соцсети + копирайт -->
       <div class="ft-right">
+        <div class="ft-contact-row">
+        <!-- на ПК ссылка стоит в ряд с соцсетями, на телефоне — строкой ниже (в .ft-meta) -->
+        <button type="button" class="ft-report ft-report--desk" @click="openReport">
+          <v-icon icon="mdi-alert-circle-outline" size="16" />
+          Сообщить о проблеме
+        </button>
+
         <div class="ft-panel">
           <span class="ft-contacts-lbl">Связаться</span>
           <div class="ft-panel-sep" aria-hidden="true" />
@@ -58,7 +67,15 @@ const currentYear = new Date().getFullYear()
           </div>
         </div>
 
+        </div>
+
+        <!-- «Сообщить о проблеме» — текстовая ссылка, а не кнопка-таблетка у
+             соцсетей: иначе читается как «пожаловаться через соцсети» -->
         <div class="ft-meta">
+          <button type="button" class="ft-report ft-report--mob" @click="openReport">
+            <v-icon icon="mdi-alert-circle-outline" size="14" />
+            Сообщить о проблеме
+          </button>
           <span class="ft-copy">© Моя Академия 2024–{{ currentYear }}</span>
           <span class="ft-dot" aria-hidden="true">·</span>
           <span class="ft-app">Электронное расписание</span>
@@ -67,6 +84,7 @@ const currentYear = new Date().getFullYear()
         </div>
       </div>
     </div>
+    <ReportProblemDialog />
   </footer>
 </template>
 
@@ -266,6 +284,42 @@ const currentYear = new Date().getFullYear()
   .soc:hover { transform: none; }
 }
 
+.ft-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* «Сообщить о проблеме» — текстовая ссылка */
+.ft-report {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ds-fg-soft);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.ft-report--desk { font-size: 13px; }
+.ft-report--mob { display: none; }
+
+.ft-report:hover { color: var(--ds-accent-ink, var(--ds-accent)); }
+
+.ft-report:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: var(--shadow-focus);
+}
+
+@media (pointer: coarse) {
+  .ft-report { min-height: 32px; }
+}
+
 .ft-meta {
   display: flex;
   align-items: center;
@@ -352,21 +406,38 @@ const currentYear = new Date().getFullYear()
     height: 14px;
   }
 
-  .ft-meta {
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    font-size: 10.5px;
-  }
-
-  /* На мобиле прячем разделители — переносы сами дают структуру */
-  .ft-meta .ft-dot {
-    display: none;
-  }
-
+  /* подпись — две строки: копирайт, под ним продукт и владелец через точку */
   .ft-meta {
     flex-wrap: wrap;
     justify-content: center;
+    row-gap: 2px;
+    column-gap: 6px;
+    font-size: 11px;
+  }
+
+  .ft-contact-row {
+    flex-direction: column;
+  }
+
+  .ft-report--desk { display: none; }
+
+  /* строки: ссылка на поддержку, копирайт, продукт · владелец */
+  .ft-report--mob {
+    display: inline-flex;
+    flex-basis: 100%;
+    justify-content: center;
+    margin: 6px 0 10px;
+    color: var(--ds-accent-ink, var(--ds-accent));
+    font-size: 13px;
+  }
+
+  .ft-copy {
+    flex-basis: 100%;
+    text-align: center;
+  }
+
+  .ft-copy + .ft-dot {
+    display: none;
   }
 }
 </style>
