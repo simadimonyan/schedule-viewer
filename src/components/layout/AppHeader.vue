@@ -83,6 +83,8 @@ const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
   backdrop-filter: blur(28px) saturate(200%);
   -webkit-backdrop-filter: blur(28px) saturate(200%);
   padding: 0 20px;
+  /* полноэкранный Telegram: статус-бар и кнопки Telegram сверху (utils/telegramViewport.ts) */
+  padding-top: var(--tg-top-inset, 0px);
   box-shadow: 0 4px 32px rgba(26, 79, 219, 0.07), 0 1px 0 rgba(0, 0, 0, 0.04);
 }
 
@@ -249,13 +251,13 @@ const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
 
 @media (min-width: 768px) {
   .header {
-    padding: 0 100px;
+    padding-inline: 100px;
   }
 }
 
 @media (max-width: 768px) {
   .header {
-    padding: 0 12px;
+    padding-inline: 12px;
   }
   .tagline {
     display: none;

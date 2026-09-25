@@ -152,8 +152,8 @@
 /* Телефон: диалог во весь экран, без скругления, кнопки на всю ширину. */
 @media (max-width: 599.98px) {
   .rp { max-height: none; height: 100%; border: none; border-radius: 0; box-shadow: none; }
-  .rp-head { padding: 14px 12px 12px 16px; padding-top: max(14px, env(safe-area-inset-top)); }
+  .rp-head { padding: 14px 12px 12px 16px; padding-top: max(14px, env(safe-area-inset-top), var(--tg-top-inset, 0px)); }
   .rp-body { padding: 16px 16px 0; flex: 1; }
-  .rp-foot { margin: auto -16px 0; padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .rp-foot { margin: auto -16px 0; padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom), var(--tg-bottom-inset, 0px)); }
   .rp-actions .rp-btn { flex: 1; }
 }

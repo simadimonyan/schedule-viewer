@@ -13,6 +13,10 @@ import * as directives from 'vuetify/directives'
 import '@mdi/font/css/materialdesignicons.css'
 
 import { EVENTS, trackGoal, trackPageView } from './utils/analytics'
+import { initTelegramViewport } from './utils/telegramViewport'
+
+// Внутри Telegram — отступы полноэкранного режима, до монтирования приложения.
+initTelegramViewport()
 
 const router = createRouter({
   history: createWebHistory(),
