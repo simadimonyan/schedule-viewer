@@ -720,6 +720,13 @@ function openRecent(r: { type: Mode; id: string }) {
   gap: 8px;
   flex-wrap: wrap;
 }
+/* Полноэкранный Telegram: справа у этого ряда висит кнопка темы из шапки
+   (AppHeader.vue). Поля с обеих сторон держат плашки центрованными и не дают
+   им дойти до кнопки — на любой ширине телефона плашки встают в два ряда,
+   «Онлайн» рядом с кнопкой. */
+html[data-tg-fullscreen] .mobile-online {
+  padding-inline: 48px;
+}
 
 .mobile-top {
   display: none;
