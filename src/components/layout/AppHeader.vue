@@ -271,38 +271,53 @@ const showCenterOwnerText = computed(() => Boolean(scheduleOwnerText.value))
 
 /* Полноэкранный Telegram (из профиля бота): сверху статус-бар, под ним строка
    кнопок Telegram — «Закрыть» слева, ⌄ ⋮ справа, середина свободна. Шапка не
-   ставится под эту строку, а занимает её: бренд компактно по центру, как
-   заголовок нативного приложения. Переключатель темы в строке не помещается —
-   углы заняты кнопками Telegram. Отступы — utils/telegramViewport.ts. */
+   ставится под эту строку, а занимает её: бренд и переключатель темы одной
+   группой по центру, как заголовок нативного приложения. Поля по бокам держат
+   группу между кнопками Telegram. Отступы — utils/telegramViewport.ts. */
 html[data-tg-fullscreen] .header {
   padding-top: var(--tg-safe-top, 0px);
+  padding-inline: 0; /* поля держит .header-inner — по кнопкам Telegram */
 }
 html[data-tg-fullscreen] .header-inner {
   height: var(--tg-content-top, 56px);
+  /* кнопки Telegram: «Закрыть» ≈ 103px слева, ⌄ ⋮ ≈ 79px справа (Android, 360px) */
+  padding-inline: 104px 80px;
   justify-content: center;
+  gap: 2px;
 }
-html[data-tg-fullscreen] .header-right,
+html[data-tg-fullscreen] .tagline,
 html[data-tg-fullscreen] .brand-subtitle,
 html[data-tg-fullscreen] .owner-chip {
   display: none;
 }
 html[data-tg-fullscreen] .brand {
-  gap: 8px;
-  max-width: calc(100% - 200px); /* не залезать под кнопки Telegram по краям */
+  gap: 6px;
+  min-width: 0;
+  flex-shrink: 1;
 }
 html[data-tg-fullscreen] .brand-mark {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 7px;
 }
 html[data-tg-fullscreen] .brand-text {
   min-width: 0;
+  overflow: hidden;
 }
 html[data-tg-fullscreen] .brand-title {
-  font-size: 15px;
+  font-size: 14px;
+  max-width: 100%; /* .brand-text выравнивает по левому краю — без этого многоточие не сработает */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+html[data-tg-fullscreen] .header-right {
+  flex-shrink: 0;
+}
+html[data-tg-fullscreen] .icon-btn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 540px) {
