@@ -11,6 +11,36 @@ export interface RequestOptions extends RequestInit {
   query?: Record<string, string | number | boolean | undefined>
 }
 
+/* Текст вместо браузерного «Failed to fetch» — его видит пользователь. */
+export const NETWORK_ERROR_MESSAGE =
+  'Не удалось связаться с сервером расписания. Проверьте интернет и попробуйте ещё раз.'
+
+const RETRY_DELAYS_MS = [400, 1200]
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/* GET с повтором. На старте приложение шлёт пачку запросов, и nginx
+ * (limit_req по IP) отбивает лишние 503 без CORS-заголовков — браузер
+ * видит это как TypeError «Failed to fetch», а не как ответ. Поэтому
+ * повторяем и сетевой сбой, и честные 503/429: через полсекунды лимит
+ * уже пропускает. Разброс задержки — чтобы повторы не ушли снова пачкой. */
+async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const last = attempt >= RETRY_DELAYS_MS.length
+    try {
+      const response = await fetch(url, init)
+      if (last || (response.status !== 503 && response.status !== 429)) return response
+    } catch (e) {
+      if (!(e instanceof TypeError) || init.signal?.aborted) throw e
+      if (last) {
+        const err: ApiError = { message: NETWORK_ERROR_MESSAGE }
+        throw err
+      }
+    }
+    await sleep(RETRY_DELAYS_MS[attempt]! + Math.random() * 300)
+  }
+}
+
 export async function apiGet<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const baseUrl = getApiBaseUrl()
   const token = getApiToken()
@@ -38,7 +68,7 @@ export async function apiGet<T>(path: string, options: RequestOptions = {}): Pro
 
   console.log('API request:', requestUrl, 'token:', token ? '***' : 'none')
 
-  const response = await fetch(requestUrl, {
+  const response = await fetchWithRetry(requestUrl, {
     method: 'GET',
     ...options,
     headers: {

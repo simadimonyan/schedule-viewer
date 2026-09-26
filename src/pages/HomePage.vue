@@ -3,7 +3,7 @@ import EntitySearch from '../components/filters/EntitySearch.vue'
 import HomeSidebar from '../components/home/HomeSidebar.vue'
 import OnlineCard from '../components/home/OnlineCard.vue'
 import TopList from '../components/home/TopList.vue'
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCurrentWeekCount } from '../api/schedule'
 import { EVENTS, trackGoal } from '../utils/analytics'
@@ -77,6 +77,17 @@ const rainIcons = computed<RainIcon[]>(() => {
   }
   return items
 })
+
+/* Сайдбар и мобильные блоки раньше монтировались оба, а лишний прятался
+ * CSS — и OnlineCard/TopList слали каждый запрос дважды (двойной heartbeat,
+ * два SSE, два топа). Монтируем только видимый: граница та же, что в
+ * @media (max-width: 1200px) ниже. */
+const WIDE_QUERY = '(min-width: 1201px)'
+const wideMedia = typeof window !== 'undefined' ? window.matchMedia(WIDE_QUERY) : null
+const isWide = ref(wideMedia?.matches ?? false)
+const onWideChange = (e: MediaQueryListEvent) => { isWide.value = e.matches }
+wideMedia?.addEventListener('change', onWideChange)
+onBeforeUnmount(() => wideMedia?.removeEventListener('change', onWideChange))
 
 onMounted(async () => {
   const raw = localStorage.getItem(RECENT_KEY)
@@ -183,12 +194,12 @@ function openRecent(r: { type: Mode; id: string }) {
 
     <!-- Десктопный фиксированный сайдбар (>= 1200px) — синхронизирован
          с режимом из EntitySearch -->
-    <HomeSidebar :mode="searchMode" />
+    <HomeSidebar v-if="isWide" :mode="searchMode" />
 
     <div class="home-body">
       <!-- Mobile: онлайн + текущая чётность недели в одной строке -->
       <div class="mobile-online">
-        <OnlineCard compact />
+        <OnlineCard v-if="!isWide" compact />
         <span
           class="parity-chip"
           :class="`parity-${currentWeekParity}`"
@@ -235,7 +246,7 @@ function openRecent(r: { type: Mode; id: string }) {
       </div>
 
       <!-- Mobile: топ под недавними — синхронно с плашкой выше -->
-      <div class="mobile-top">
+      <div v-if="!isWide" class="mobile-top">
         <TopList :mode="searchMode" />
       </div>
     </div>
